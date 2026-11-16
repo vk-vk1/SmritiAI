@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SmritiAI — Smart Conversational Memory Vault for Personal and Family Records">
+    <title>SmritiAI — Smart Conversational Memory Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at top left, #0f172a, #020617);
+            color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.58);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .pulse-mic {
+            animation: pulseRed 1.4s infinite;
+        }
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- ==================== AUTH SCREEN (LOGIN / SIGNUP) ==================== -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl border border-indigo-500/25">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-slate-950 text-2xl shadow-lg">
+                    S
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Smriti<span class="text-cyan-400">AI</span></h1>
+                    <p class="text-xs text-slate-400">Personal & Family Smart Memory Vault</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="grid grid-cols-2 gap-2 bg-slate-900/90 p-1 rounded-xl mb-6">
+                <button type="button" id="tabLogin" onclick="switchAuthTab('login')"
+                    class="py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition">
+                    Login
+                </button>
+                <button type="button" id="tabRegister" onclick="switchAuthTab('register')"
+                    class="py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition">
+                    Create Account
+                </button>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div id="nameFieldBox" class="hidden">
+                    <label for="authName" class="block text-xs text-slate-400 mb-1">Full Name</label>
+                    <input type="text" id="authName" placeholder="Enter your full name"
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <div>
+                    <label for="authUsername" class="block text-xs text-slate-400 mb-1">Mobile Number or Username</label>
+                    <input type="text" id="authUsername" required placeholder="Enter your mobile number or username"
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <div>
+                    <label for="authPassword" class="block text-xs text-slate-400 mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="Minimum 4 characters"
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <p id="authError" class="hidden text-xs text-rose-400 bg-rose-950/50 border border-rose-500/30 rounded-lg p-2.5"></p>
+
+                <button type="submit" id="authSubmitBtn"
+                    class="w-full bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-semibold py-3 rounded-xl shadow-lg transition">
+                    Open Vault
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN APP DASHBOARD ==================== -->
+    <div id="appScreen" class="hidden min-h-screen flex flex-col md:flex-row">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="w-full md:w-72 glass border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-slate-950 text-xl shadow-lg">
+                            S
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold tracking-tight text-white">Smriti<span class="text-cyan-400">AI</span></h1>
+                            <p id="userDisplayName" class="text-xs text-cyan-300 font-medium truncate max-w-[140px]">User</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="logout()" title="Logout"
+                        class="text-xs bg-slate-800 hover:bg-rose-600/30 text-slate-300 hover:text-rose-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
+                        Logout
+                    </button>
+                </div>
+
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Your Private Folders</div>
+                <nav id="folderList" class="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
+                    <!-- Dynamic folders -->
+                </nav>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-800 space-y-2">
+                <button type="button" id="voiceToggleBtn" onclick="toggleVoiceReply()"
+                    class="w-full text-xs px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-300 flex items-center justify-between hover:border-cyan-500/40 transition">
+                    <span>AI Voice Reply</span>
+                    <span id="voiceStatusText" class="text-emerald-400 font-semibold">ON</span>
+                </button>
+                <div id="aiModeBadge" class="text-xs px-3 py-2 rounded-lg bg-slate-900/80 text-slate-300 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>Checking AI...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <main class="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 md:p-8">
+
+            <!-- CONVERSATIONAL AI CARD -->
+            <section class="glass rounded-2xl p-5 md:p-6 shadow-2xl mb-6 border border-indigo-500/25">
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center shrink-0 text-cyan-300 font-bold">
+                        AI
+                    </div>
+                    <div class="flex-1">
+                        <h2 id="aiGreeting" class="text-lg md:text-xl font-semibold text-white">
+                            Welcome! What special memory would you like to save today?
+                        </h2>
+                        <p id="aiSubReply" class="text-sm text-cyan-300 mt-1">
+                            Type or speak naturally — e.g., "Store tractor service bill of ₹1,500 in the Tractor folder"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Image Attachment Preview -->
+                <div id="imagePreviewBox" class="hidden mb-3 flex items-center gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 w-fit">
+                    <img id="imagePreview"
+                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                        alt="Selected Image Preview"
+                        class="w-12 h-12 object-cover rounded-lg">
+                    <div class="text-xs text-slate-300">
+                        <p id="imageName" class="font-medium truncate max-w-[180px]"></p>
+                        <p class="text-emerald-400">AI will automatically scan and extract text from this image</p>
+                    </div>
+                    <button type="button" onclick="clearImage()" aria-label="Remove Image"
+                        class="text-slate-400 hover:text-rose-400 px-2 text-lg font-bold">×</button>
+                </div>
+
+                <!-- Input Bar -->
+                <form id="memoryForm" onsubmit="handleSend(event)" class="flex flex-col sm:flex-row gap-2.5">
+                    <div class="flex-1 flex items-center bg-slate-900/90 border border-slate-700 focus-within:border-cyan-400 rounded-xl px-3 py-2">
+                        <input type="file" id="imageInput" accept="image/*" aria-label="Attach Image" class="hidden" onchange="previewSelectedImage(event)">
+                        
+                        <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Receipt or Photo"
+                            class="p-2 text-slate-400 hover:text-cyan-400 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                        </button>
+
+                        <input type="text" id="userInput" autocomplete="off" aria-label="Memory Input"
+                            placeholder="Type a note or click the mic to speak..."
+                            class="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none px-2 text-sm md:text-base">
+
+                        <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak to type"
+                            class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button type="submit" id="sendBtn"
+                        class="bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0">
+                        <span>Save / Ask AI</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- SEARCH & FILTER HEADER -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <h3 id="timelineTitle" class="text-lg font-bold text-slate-200">All Memories (Date-Wise Timeline)</h3>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="quickSearchInput" oninput="handleQuickSearch(this.value)"
+                        aria-label="Search Memories"
+                        placeholder="Instant search (notes or receipts)..."
+                        class="bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 w-56">
+                    <button type="button" onclick="resetFilters()" class="text-xs text-cyan-400 hover:underline px-2">Reset</button>
+                </div>
+            </div>
+
+            <!-- TIMELINE FEED -->
+            <div id="timelineContainer" class="space-y-6 pb-12"></div>
+        </main>
+    </div>
+
+    <!-- FULL IMAGE MODAL -->
+    <div id="imageModal" onclick="closeModal()" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 cursor-pointer">
+        <img id="modalImg"
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            alt="Full Size Memory Preview"
+            class="max-h-[90vh] max-w-[95vw] rounded-xl shadow-2xl border border-slate-700">
+    </div>
+
+    <script>
+        const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        let authMode = "login";
+        let authToken = localStorage.getItem("smriti_token") || "";
+        let activeFolderId = null;
+        let voiceReplyEnabled = true;
+        let searchTimer = null;
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return String(text)
+                .replace(/&/g, "&")
+                .replace(/</g, "<")
+                .replace(/>/g, ">")
+                .replace(/"/g, "")
+                .replace(/'/g, "'");
+        }
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            const tabLogin = document.getElementById("tabLogin");
+            const tabRegister = document.getElementById("tabRegister");
+            const nameBox = document.getElementById("nameFieldBox");
+            const btn = document.getElementById("authSubmitBtn");
+            document.getElementById("authError").classList.add("hidden");
+
+            if (mode === "register") {
+                tabRegister.className = "py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
+                tabLogin.className = "py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition";
+                nameBox.classList.remove("hidden");
+                btn.innerText = "Create Private Vault";
+            } else {
+                tabLogin.className = "py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
+                tabRegister.className = "py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition";
+                nameBox.classList.add("hidden");
+                btn.innerText = "Open Vault";
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const full_name = document.getElementById("authName").value;
+            const username = document.getElementById("authUsername").value;
+            const password = document.getElementById("authPassword").value;
+            const errBox = document.getElementById("authError");
+            errBox.classList.add("hidden");
+
+            const endpoint = authMode === "register" ? "/api/register" : "/api/login";
+            try {
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ full_name, username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errBox.innerText = data.detail || "Authentication failed.";
+                    errBox.classList.remove("hidden");
+                    return;
+                }
+                authToken = data.token;
+                localStorage.setItem("smriti_token", authToken);
+                showAppScreen();
+            } catch (err) {
+                errBox.innerText = "Unable to connect to the server.";
+                errBox.classList.remove("hidden");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("smriti_token");
+            authToken = "";
+            document.getElementById("appScreen").classList.add("hidden");
+            document.getElementById("authScreen").classList.remove("hidden");
+        }
+
+        function showAppScreen() {
+            document.getElementById("authScreen").classList.add("hidden");
+            document.getElementById("appScreen").classList.remove("hidden");
+            loadVaultData();
+        }
+
+        function toggleVoiceReply() {
+            voiceReplyEnabled = !voiceReplyEnabled;
+            const statusText = document.getElementById("voiceStatusText");
+            statusText.innerText = voiceReplyEnabled ? "ON" : "OFF";
+            statusText.className = voiceReplyEnabled ? "text-emerald-400 font-semibold" : "text-slate-500 font-semibold";
+        }
+
+        function speakText(text) {
+            if (!voiceReplyEnabled || !("speechSynthesis" in window)) return;
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = "en-IN";
+            utter.rate = 1.02;
+            window.speechSynthesis.speak(utter);
+        }
+
+        function selectFolderFromBtn(btn) {
+            const folderId = Number(btn.dataset.folderId);
+            const folderName = btn.dataset.folderName || "Folder";
+            loadVaultData(folderId, null, `${folderName} Folder`);
+        }
+
+        async function deleteFolderFromBtn(btn) {
+            const folderId = Number(btn.dataset.folderId);
+            const folderName = btn.dataset.folderName || "this";
+            if (!confirm(`Are you sure you want to delete the "${folderName}" folder and all memories inside it?`)) return;
+
+            try {
+                const res = await fetch(`/api/folder/${folderId}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${authToken}` }
+                });
+                if (!res.ok) {
+                    alert("Could not delete the folder.");
+                    return;
+                }
+                if (activeFolderId === folderId) {
+                    activeFolderId = null;
+                    loadVaultData(null, null, "All Memories (Date-Wise Timeline)");
+                } else {
+                    loadVaultData(activeFolderId);
+                }
+            } catch (err) {
+                alert("Error: Could not connect to the server.");
+            }
+        }
+
+        async function loadVaultData(folderId = null, searchKw = null, customTitle = null) {
+            activeFolderId = folderId;
+            let url = "/api/data?";
+            if (folderId) url += `folder_id=${folderId}&`;
+            if (searchKw) url += `search=${encodeURIComponent(searchKw)}&`;
+
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${authToken}` }
+            });
+
+            if (res.status === 401) {
+                logout();
+                return;
+            }
+
+            const data = await res.json();
+            document.getElementById("userDisplayName").innerText = data.user.full_name;
+            document.getElementById("aiGreeting").innerText = `Welcome, ${data.user.full_name}! What special memory would you like to save today?`;
+
+            const badge = document.getElementById("aiModeBadge");
+            if (data.gemini_active) {
+                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span><span>Gemini 2.5 Vision AI Active</span>`;
+            } else {
+                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span><span>Smart Local Mode Active</span>`;
+            }
+
+            const folderList = document.getElementById("folderList");
+            const totalCount = data.folders.reduce((acc, f) => acc + f.count, 0);
+            let foldersHtml = `
+                <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition ${!activeFolderId && !searchKw ? 'bg-indigo-600/30 text-cyan-300 border border-indigo-500/40' : 'text-slate-300 hover:bg-slate-800/60'}">
+                    <span>All Memories</span>
+                    <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${totalCount}</span>
+                </button>
+            `;
+
+            data.folders.forEach(f => {
+                const isActive = activeFolderId === f.id;
+                foldersHtml += `
+                    <div class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition ${isActive ? 'bg-indigo-600/30 text-cyan-300 border border-indigo-500/40' : 'text-slate-300 hover:bg-slate-800/60'}">
+                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="selectFolderFromBtn(this)"
+                            class="flex-1 flex items-center justify-between text-left truncate pr-2">
+                            <span class="flex items-center gap-2 truncate">
+                                <span class="text-amber-400">📁</span> ${escapeHtml(f.name)}
+                            </span>
+                            <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${f.count}</span>
+                        </button>
+                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="deleteFolderFromBtn(this)"
+                            title="Delete Folder" aria-label="Delete Folder"
+                            class="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1 rounded-lg transition shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            });
+            folderList.innerHTML = foldersHtml;
+
+            if (customTitle) {
+                document.getElementById("timelineTitle").innerText = customTitle;
+            } else if (!folderId && !searchKw) {
+                document.getElementById("timelineTitle").innerText = "All Memories (Date-Wise Timeline)";
+            }
+
+            renderTimeline(data.memories);
+        }
+
+        function renderTimeline(memories) {
+            const container = document.getElementById("timelineContainer");
+            if (!memories.length) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-10 text-center text-slate-400">
+                        <p class="text-base font-medium text-slate-300">No memories saved here yet.</p>
+                        <p class="text-xs mt-1">Type or speak in the AI box above to save your first memory!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const grouped = {};
+            memories.forEach(m => {
+                if (!grouped[m.date_badge]) grouped[m.date_badge] = [];
+                grouped[m.date_badge].push(m);
+            });
+
+            let html = "";
+            for (const [dateLabel, items] of Object.entries(grouped)) {
+                const isToday = dateLabel === "Today";
+                html += `
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold ${isToday ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-300'}">
+                                ${escapeHtml(dateLabel)}
+                            </span>
+                            <div class="h-px bg-slate-800 flex-1"></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                `;
+
+                items.forEach(item => {
+                    html += `
+                        <div class="glass rounded-xl p-4 flex flex-col justify-between hover:border-slate-600 transition">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 mb-2.5">
+                                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                        📁 ${escapeHtml(item.folder_name)}
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-400">${escapeHtml(item.time_only)}</span>
+                                        <button type="button" onclick="deleteMemory(${item.id})" title="Delete" class="text-slate-500 hover:text-rose-400 text-sm font-bold px-1">×</button>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-slate-100 leading-relaxed">${escapeHtml(item.content)}</p>
+                                ${item.ocr_text ? `
+                                    <div class="mt-2.5 p-2 rounded-lg bg-slate-950/70 border border-cyan-500/20 text-xs text-cyan-200">
+                                        <span class="font-semibold text-cyan-400">AI Image Scan:</span> ${escapeHtml(item.ocr_text)}
+                                    </div>
+                                ` : ''}
+                                ${item.image_path ? `
+                                    <div class="mt-3">
+                                        <img src="${escapeHtml(item.image_path)}"
+                                            data-full-src="${escapeHtml(item.image_path)}"
+                                            onclick="openModal(this.dataset.fullSrc)"
+                                            class="w-full h-40 object-cover rounded-lg border border-slate-700 cursor-pointer hover:opacity-90 transition"
+                                            alt="Saved Document">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        async function handleSend(e) {
+            e.preventDefault();
+            const input = document.getElementById("userInput");
+            const fileInput = document.getElementById("imageInput");
+            const sendBtn = document.getElementById("sendBtn");
+
+            if (!input.value.trim() && !fileInput.files.length) return;
+
+            const formData = new FormData();
+            formData.append("message", input.value);
+            if (fileInput.files.length > 0) {
+                formData.append("image", fileInput.files[0]);
+            }
+
+            sendBtn.disabled = true;
+            sendBtn.innerText = "Processing...";
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${authToken}` },
+                    body: formData
+                });
+                const data = await res.json();
+
+                document.getElementById("aiSubReply").innerText = data.ai_reply;
+                speakText(data.ai_reply);
+                input.value = "";
+                clearImage();
+
+                if (data.status === "search") {
+                    loadVaultData(null, data.search_keyword, `Search Results: "${data.search_keyword}"`);
+                } else {
+                    loadVaultData();
+                }
+            } catch (err) {
+                alert("Error: Could not connect to the server.");
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<span>Save / Ask AI</span>`;
+            }
+        }
+
+        function handleQuickSearch(val) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                if (!val.trim()) {
+                    loadVaultData(activeFolderId);
+                    return;
+                }
+                loadVaultData(null, val.trim(), `Search: "${val.trim()}"`);
+            }, 250);
+        }
+
+        function resetFilters() {
+            document.getElementById("quickSearchInput").value = "";
+            loadVaultData(null, null, "All Memories (Date-Wise Timeline)");
+        }
+
+        function previewSelectedImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById("imagePreview").src = URL.createObjectURL(file);
+            document.getElementById("imageName").innerText = file.name;
+            document.getElementById("imagePreviewBox").classList.remove("hidden");
+        }
+
+        function clearImage() {
+            document.getElementById("imageInput").value = "";
+            document.getElementById("imagePreview").src = BLANK_IMG;
+            document.getElementById("imagePreviewBox").classList.add("hidden");
+        }
+
+        async function deleteMemory(id) {
+            if (!confirm("Are you sure you want to delete this memory?")) return;
+            await fetch(`/api/memory/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${authToken}` }
+            });
+            loadVaultData(activeFolderId);
+        }
+
+        function openModal(src) {
+            if (!src) return;
+            document.getElementById("modalImg").src = src;
+            document.getElementById("imageModal").classList.remove("hidden");
+        }
+
+        function closeModal() {
+            document.getElementById("imageModal").classList.add("hidden");
+            document.getElementById("modalImg").src = BLANK_IMG;
+        }
+
+        function startVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Please use Google Chrome or Microsoft Edge for voice typing.");
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-IN";
+            const micBtn = document.getElementById("micBtn");
+
+            recognition.onstart = () => micBtn.classList.add("pulse-mic", "text-rose-400");
+            recognition.onend = () => micBtn.classList.remove("pulse-mic", "text-rose-400");
+            recognition.onresult = (event) => {
+                document.getElementById("userInput").value = event.results[0][0].transcript;
+            };
+            recognition.start();
+        }
+
+        if (authToken) {
+            showAppScreen();
+        }
+    </script>
+</body>
+</html>
