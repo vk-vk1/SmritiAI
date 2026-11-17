@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SmritiAI — Smart Conversational Memory Vault for Personal and Family Records">
     <title>SmritiAI — Smart Conversational Memory Vault</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
         body {
             background: radial-gradient(circle at top left, #0f172a, #020617);
@@ -106,7 +106,16 @@
                     </button>
                 </div>
 
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Your Private Folders</div>
+                <!-- FOLDERS HEADER WITH + NEW BUTTON -->
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Your Private Folders</span>
+                    <button type="button" onclick="openFolderModal()" title="Create New Folder"
+                        class="flex items-center gap-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg shadow transition">
+                        <span class="text-sm leading-none font-bold">+</span>
+                        <span>New</span>
+                    </button>
+                </div>
+
                 <nav id="folderList" class="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
                     <!-- Dynamic folders -->
                 </nav>
@@ -139,9 +148,20 @@
                             Welcome! What special memory would you like to save today?
                         </h2>
                         <p id="aiSubReply" class="text-sm text-cyan-300 mt-1">
-                            Type or speak naturally — e.g., "Store tractor service bill of ₹1,500 in the Tractor folder"
+                            Click any folder on the left to write inside it, or type/speak naturally below.
                         </p>
                     </div>
+                </div>
+
+                <!-- ACTIVE FOLDER BANNER (Shown when a specific folder is clicked) -->
+                <div id="activeFolderBanner" class="hidden mb-3 flex items-center justify-between bg-indigo-950/80 border border-cyan-500/40 px-3.5 py-2 rounded-xl text-xs">
+                    <div class="flex items-center gap-2 text-cyan-200">
+                        <span class="text-amber-400 text-sm">📁</span>
+                        <span>Writing inside folder: <strong id="activeFolderLabel" class="text-white"></strong></span>
+                    </div>
+                    <button type="button" onclick="resetFilters()" class="text-slate-300 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-slate-900/70 transition">
+                        Exit Folder ×
+                    </button>
                 </div>
 
                 <!-- Image Attachment Preview -->
@@ -185,7 +205,7 @@
 
                     <button type="submit" id="sendBtn"
                         class="bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0">
-                        <span>Save / Ask AI</span>
+                        <span id="sendBtnText">Save / Ask AI</span>
                     </button>
                 </form>
             </section>
@@ -207,6 +227,33 @@
         </main>
     </div>
 
+    <!-- CREATE NEW FOLDER MODAL -->
+    <div id="folderModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div class="glass max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-indigo-500/30">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Create New Folder</h3>
+                <button type="button" onclick="closeFolderModal()" class="text-slate-400 hover:text-white text-xl font-bold">×</button>
+            </div>
+            <form onsubmit="handleCreateFolder(event)" class="space-y-4">
+                <div>
+                    <label for="newFolderNameInput" class="block text-xs text-slate-400 mb-1.5">Folder Name</label>
+                    <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills"
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeFolderModal()"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" id="createFolderSubmitBtn"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-cyan-500 text-white hover:from-indigo-500 hover:to-cyan-400 transition">
+                        Create & Open
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- FULL IMAGE MODAL -->
     <div id="imageModal" onclick="closeModal()" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 cursor-pointer">
         <img id="modalImg"
@@ -220,6 +267,7 @@
         let authMode = "login";
         let authToken = localStorage.getItem("smriti_token") || "";
         let activeFolderId = null;
+        let activeFolderName = null;
         let voiceReplyEnabled = true;
         let searchTimer = null;
 
@@ -229,7 +277,7 @@
                 .replace(/&/g, "&")
                 .replace(/</g, "<")
                 .replace(/>/g, ">")
-                .replace(/"/g, "")
+                .replace(/"/g, """)
                 .replace(/'/g, "'");
         }
 
@@ -287,6 +335,8 @@
         function logout() {
             localStorage.removeItem("smriti_token");
             authToken = "";
+            activeFolderId = null;
+            activeFolderName = null;
             document.getElementById("appScreen").classList.add("hidden");
             document.getElementById("authScreen").classList.remove("hidden");
         }
@@ -295,6 +345,73 @@
             document.getElementById("authScreen").classList.add("hidden");
             document.getElementById("appScreen").classList.remove("hidden");
             loadVaultData();
+        }
+
+        function openFolderModal() {
+            const modal = document.getElementById("folderModal");
+            const input = document.getElementById("newFolderNameInput");
+            input.value = "";
+            modal.classList.remove("hidden");
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function closeFolderModal() {
+            document.getElementById("folderModal").classList.add("hidden");
+        }
+
+        async function handleCreateFolder(e) {
+            e.preventDefault();
+            const input = document.getElementById("newFolderNameInput");
+            const btn = document.getElementById("createFolderSubmitBtn");
+            const name = input.value.trim();
+            if (!name) return;
+
+            btn.disabled = true;
+            btn.innerText = "Creating...";
+
+            try {
+                const res = await fetch("/api/folder", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.detail || "Could not create folder.");
+                    return;
+                }
+                closeFolderModal();
+                const folderObj = data.folder;
+                document.getElementById("aiSubReply").innerText = `Folder "${folderObj.name}" is open. Type a note or attach a photo below to save inside it.`;
+                await loadVaultData(folderObj.id, null, `${folderObj.name} Folder`, folderObj.name);
+                document.getElementById("userInput").focus();
+            } catch (err) {
+                alert("Error: Could not connect to the server.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create & Open";
+            }
+        }
+
+        function updateActiveFolderUI() {
+            const banner = document.getElementById("activeFolderBanner");
+            const label = document.getElementById("activeFolderLabel");
+            const userInput = document.getElementById("userInput");
+            const sendBtnText = document.getElementById("sendBtnText");
+
+            if (activeFolderId && activeFolderName) {
+                label.innerText = activeFolderName;
+                banner.classList.remove("hidden");
+                userInput.placeholder = `Write a note or attach a photo inside "${activeFolderName}"...`;
+                sendBtnText.innerText = `Save in ${activeFolderName}`;
+            } else {
+                banner.classList.add("hidden");
+                userInput.placeholder = "Type a note or click the mic to speak...";
+                sendBtnText.innerText = "Save / Ask AI";
+            }
         }
 
         function toggleVoiceReply() {
@@ -316,7 +433,8 @@
         function selectFolderFromBtn(btn) {
             const folderId = Number(btn.dataset.folderId);
             const folderName = btn.dataset.folderName || "Folder";
-            loadVaultData(folderId, null, `${folderName} Folder`);
+            loadVaultData(folderId, null, `${folderName} Folder`, folderName);
+            document.getElementById("userInput").focus();
         }
 
         async function deleteFolderFromBtn(btn) {
@@ -335,17 +453,25 @@
                 }
                 if (activeFolderId === folderId) {
                     activeFolderId = null;
-                    loadVaultData(null, null, "All Memories (Date-Wise Timeline)");
+                    activeFolderName = null;
+                    loadVaultData(null, null, "All Memories (Date-Wise Timeline)", null);
                 } else {
-                    loadVaultData(activeFolderId);
+                    loadVaultData(activeFolderId, null, null, activeFolderName);
                 }
             } catch (err) {
                 alert("Error: Could not connect to the server.");
             }
         }
 
-        async function loadVaultData(folderId = null, searchKw = null, customTitle = null) {
+        async function loadVaultData(folderId = null, searchKw = null, customTitle = null, folderName = null) {
             activeFolderId = folderId;
+            if (folderId === null) {
+                activeFolderName = null;
+            } else if (folderName) {
+                activeFolderName = folderName;
+            }
+            updateActiveFolderUI();
+
             let url = "/api/data?";
             if (folderId) url += `folder_id=${folderId}&`;
             if (searchKw) url += `search=${encodeURIComponent(searchKw)}&`;
@@ -373,7 +499,7 @@
             const folderList = document.getElementById("folderList");
             const totalCount = data.folders.reduce((acc, f) => acc + f.count, 0);
             let foldersHtml = `
-                <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)')"
+                <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)', null)"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition ${!activeFolderId && !searchKw ? 'bg-indigo-600/30 text-cyan-300 border border-indigo-500/40' : 'text-slate-300 hover:bg-slate-800/60'}">
                     <span>All Memories</span>
                     <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${totalCount}</span>
@@ -415,10 +541,13 @@
         function renderTimeline(memories) {
             const container = document.getElementById("timelineContainer");
             if (!memories.length) {
+                const emptyHint = activeFolderName
+                    ? `Type a note or upload a photo in the box above to save it inside "${escapeHtml(activeFolderName)}"!`
+                    : `Click "+ New" on the left to create a folder, or type/speak above to save your first memory!`;
                 container.innerHTML = `
                     <div class="glass rounded-2xl p-10 text-center text-slate-400">
                         <p class="text-base font-medium text-slate-300">No memories saved here yet.</p>
-                        <p class="text-xs mt-1">Type or speak in the AI box above to save your first memory!</p>
+                        <p class="text-xs mt-1">${emptyHint}</p>
                     </div>
                 `;
                 return;
@@ -492,6 +621,9 @@
 
             const formData = new FormData();
             formData.append("message", input.value);
+            if (activeFolderId) {
+                formData.append("target_folder_id", String(activeFolderId));
+            }
             if (fileInput.files.length > 0) {
                 formData.append("image", fileInput.files[0]);
             }
@@ -513,7 +645,11 @@
                 clearImage();
 
                 if (data.status === "search") {
-                    loadVaultData(null, data.search_keyword, `Search Results: "${data.search_keyword}"`);
+                    loadVaultData(null, data.search_keyword, `Search Results: "${data.search_keyword}"`, null);
+                } else if (data.status === "folder_created" && data.folder_id) {
+                    loadVaultData(data.folder_id, null, `${data.folder_name} Folder`, data.folder_name);
+                } else if (activeFolderId) {
+                    loadVaultData(activeFolderId, null, `${activeFolderName} Folder`, activeFolderName);
                 } else {
                     loadVaultData();
                 }
@@ -521,7 +657,7 @@
                 alert("Error: Could not connect to the server.");
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = `<span>Save / Ask AI</span>`;
+                sendBtn.innerHTML = `<span id="sendBtnText">${activeFolderName ? 'Save in ' + escapeHtml(activeFolderName) : 'Save / Ask AI'}</span>`;
             }
         }
 
@@ -529,16 +665,16 @@
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => {
                 if (!val.trim()) {
-                    loadVaultData(activeFolderId);
+                    loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
                     return;
                 }
-                loadVaultData(null, val.trim(), `Search: "${val.trim()}"`);
+                loadVaultData(null, val.trim(), `Search: "${val.trim()}"`, null);
             }, 250);
         }
 
         function resetFilters() {
             document.getElementById("quickSearchInput").value = "";
-            loadVaultData(null, null, "All Memories (Date-Wise Timeline)");
+            loadVaultData(null, null, "All Memories (Date-Wise Timeline)", null);
         }
 
         function previewSelectedImage(event) {
@@ -561,7 +697,7 @@
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${authToken}` }
             });
-            loadVaultData(activeFolderId);
+            loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
         }
 
         function openModal(src) {
