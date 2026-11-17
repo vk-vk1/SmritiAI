@@ -5,79 +5,770 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SmritiAI — Smart Conversational Memory Vault for Personal and Family Records">
     <title>SmritiAI — Smart Conversational Memory Vault</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
             background: radial-gradient(circle at top left, #0f172a, #020617);
             color: #f8fafc;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .hidden {
+            display: none !important;
         }
         .glass {
-            background: rgba(30, 41, 59, 0.58);
+            background: rgba(30, 41, 59, 0.65);
             -webkit-backdrop-filter: blur(16px);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(148, 163, 184, 0.16);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        /* ==================== AUTH SCREEN ==================== */
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #6366f1, #22d3ee);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #020617;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        .logo-box-sm {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            font-size: 20px;
+        }
+        .brand-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .brand-title span {
+            color: #22d3ee;
+        }
+        .brand-sub {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+        }
+        .tab-btn {
+            padding: 9px 12px;
+            border: none;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #94a3b8;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #4f46e5;
+            color: #ffffff;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .form-input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 14px;
+            color: #ffffff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            border-color: #22d3ee;
+        }
+        .error-box {
+            font-size: 12px;
+            color: #fda4af;
+            background: rgba(136, 19, 55, 0.45);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.3);
+            transition: opacity 0.2s;
+        }
+        .btn-primary:hover {
+            opacity: 0.92;
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ==================== MAIN DASHBOARD ==================== */
+        .app-layout {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (min-width: 768px) {
+            .app-layout {
+                flex-direction: row;
+            }
+        }
+        .sidebar {
+            width: 100%;
+            padding: 20px;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                width: 290px;
+                flex-shrink: 0;
+                border-bottom: none;
+                border-right: 1px solid #1e293b;
+            }
+        }
+        .sidebar-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .user-name-tag {
+            font-size: 12px;
+            color: #67e8f9;
+            font-weight: 500;
+            max-width: 130px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn-logout {
+            font-size: 12px;
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-logout:hover {
+            background: rgba(225, 29, 72, 0.25);
+            color: #fda4af;
+        }
+        .folders-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .folders-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+        }
+        .btn-new-folder {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #4f46e5;
+            color: #ffffff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-new-folder:hover {
+            background: #6366f1;
+        }
+        .folder-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 48vh;
+            overflow-y: auto;
+        }
+        .folder-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: background 0.15s;
+        }
+        .folder-row:hover {
+            background: rgba(30, 41, 59, 0.7);
+        }
+        .folder-row.active {
+            background: rgba(79, 70, 229, 0.28);
+            border-color: rgba(99, 102, 241, 0.45);
+        }
+        .folder-select-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            padding-right: 8px;
+            overflow: hidden;
+        }
+        .folder-row.active .folder-select-btn {
+            color: #67e8f9;
+        }
+        .folder-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .count-pill {
+            font-size: 11px;
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+        .btn-del-folder {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            padding: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-del-folder:hover {
+            color: #fb7185;
+            background: rgba(244, 63, 94, 0.15);
+        }
+        .sidebar-footer {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .voice-btn {
+            width: 100%;
+            font-size: 12px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .ai-badge {
+            font-size: 12px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .dot-green { background: #34d399; }
+        .dot-amber { background: #fbbf24; }
+
+        /* ==================== MAIN WORKSPACE ==================== */
+        .workspace {
+            flex: 1;
+            max-width: 980px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        @media (min-width: 768px) {
+            .workspace {
+                padding: 32px;
+            }
+        }
+        .ai-card {
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.28);
+        }
+        .ai-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.3);
+            border: 1px solid rgba(129, 140, 248, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #67e8f9;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .ai-greeting {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .ai-sub {
+            font-size: 13px;
+            color: #67e8f9;
+            margin-top: 4px;
+        }
+        .active-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(30, 27, 75, 0.85);
+            border: 1px solid rgba(34, 211, 238, 0.4);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #a5f3fc;
+            margin-bottom: 12px;
+        }
+        .btn-exit-folder {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-exit-folder:hover {
+            color: #fda4af;
+            border-color: #fb7185;
+        }
+        .img-preview-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .img-preview-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .chat-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        @media (min-width: 640px) {
+            .chat-form {
+                flex-direction: row;
+            }
+        }
+        .input-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 6px 10px;
+        }
+        .input-bar:focus-within {
+            border-color: #22d3ee;
+        }
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-btn:hover {
+            color: #22d3ee;
+            background: rgba(30, 41, 59, 0.8);
+        }
+        .chat-text-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            padding: 6px 8px;
+            outline: none;
+            min-width: 0;
+        }
+        .btn-send {
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 12px 22px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-send:disabled {
+            opacity: 0.6;
         }
         .pulse-mic {
             animation: pulseRed 1.4s infinite;
+            color: #fb7185 !important;
         }
         @keyframes pulseRed {
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
+
+        /* ==================== TIMELINE ==================== */
+        .timeline-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .timeline-heading {
+            font-size: 17px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+        .search-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-input {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 12px;
+            color: #ffffff;
+            width: 210px;
+            outline: none;
+        }
+        .search-input:focus {
+            border-color: #22d3ee;
+        }
+        .btn-reset {
+            background: transparent;
+            border: none;
+            color: #22d3ee;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 6px;
+        }
+        .date-section {
+            margin-bottom: 24px;
+        }
+        .date-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .date-pill {
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+        .date-pill.today {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .divider-line {
+            height: 1px;
+            background: #1e293b;
+            flex: 1;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        @media (min-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .memory-card {
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .folder-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+        }
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .btn-del-mem {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .btn-del-mem:hover {
+            color: #fb7185;
+        }
+        .card-text {
+            font-size: 14px;
+            color: #f1f5f9;
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+        .ocr-box {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(2, 6, 23, 0.75);
+            border: 1px solid rgba(34, 211, 238, 0.25);
+            font-size: 12px;
+            color: #a5f3fc;
+        }
+        .memory-img {
+            margin-top: 12px;
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            cursor: pointer;
+        }
+        .empty-box {
+            border-radius: 18px;
+            padding: 40px 20px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        /* ==================== MODALS ==================== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-card {
+            width: 100%;
+            max-width: 380px;
+            border-radius: 18px;
+            padding: 24px;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .btn-cancel {
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #1e293b;
+            color: #cbd5e1;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-confirm {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+        }
+        .full-img {
+            max-height: 90vh;
+            max-width: 95vw;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
     <!-- ==================== AUTH SCREEN (LOGIN / SIGNUP) ==================== -->
-    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
-        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl border border-indigo-500/25">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-slate-950 text-2xl shadow-lg">
-                    S
-                </div>
+    <div id="authScreen" class="auth-wrapper">
+        <div class="glass auth-card">
+            <div class="brand-row">
+                <div class="logo-box">S</div>
                 <div>
-                    <h1 class="text-2xl font-bold text-white">Smriti<span class="text-cyan-400">AI</span></h1>
-                    <p class="text-xs text-slate-400">Personal & Family Smart Memory Vault</p>
+                    <h1 class="brand-title">Smriti<span>AI</span></h1>
+                    <p class="brand-sub">Personal & Family Smart Memory Vault</p>
                 </div>
             </div>
 
-            <!-- Tabs -->
-            <div class="grid grid-cols-2 gap-2 bg-slate-900/90 p-1 rounded-xl mb-6">
-                <button type="button" id="tabLogin" onclick="switchAuthTab('login')"
-                    class="py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition">
+            <div class="auth-tabs">
+                <button type="button" id="tabLogin" onclick="switchAuthTab('login')" class="tab-btn active">
                     Login
                 </button>
-                <button type="button" id="tabRegister" onclick="switchAuthTab('register')"
-                    class="py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition">
+                <button type="button" id="tabRegister" onclick="switchAuthTab('register')" class="tab-btn">
                     Create Account
                 </button>
             </div>
 
-            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
-                <div id="nameFieldBox" class="hidden">
-                    <label for="authName" class="block text-xs text-slate-400 mb-1">Full Name</label>
-                    <input type="text" id="authName" placeholder="Enter your full name"
-                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div id="nameFieldBox" class="form-group hidden">
+                    <label for="authName" class="form-label">Full Name</label>
+                    <input type="text" id="authName" placeholder="Enter your full name" class="form-input">
                 </div>
 
-                <div>
-                    <label for="authUsername" class="block text-xs text-slate-400 mb-1">Mobile Number or Username</label>
-                    <input type="text" id="authUsername" required placeholder="Enter your mobile number or username"
-                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                <div class="form-group">
+                    <label for="authUsername" class="form-label">Mobile Number or Username</label>
+                    <input type="text" id="authUsername" required placeholder="Enter your mobile number or username" class="form-input">
                 </div>
 
-                <div>
-                    <label for="authPassword" class="block text-xs text-slate-400 mb-1">Password</label>
-                    <input type="password" id="authPassword" required placeholder="Minimum 4 characters"
-                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+                <div class="form-group">
+                    <label for="authPassword" class="form-label">Password</label>
+                    <input type="password" id="authPassword" required placeholder="Minimum 4 characters" class="form-input">
                 </div>
 
-                <p id="authError" class="hidden text-xs text-rose-400 bg-rose-950/50 border border-rose-500/30 rounded-lg p-2.5"></p>
+                <p id="authError" class="hidden error-box"></p>
 
-                <button type="submit" id="authSubmitBtn"
-                    class="w-full bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-semibold py-3 rounded-xl shadow-lg transition">
+                <button type="submit" id="authSubmitBtn" class="btn-primary">
                     Open Vault
                 </button>
             </form>
@@ -85,181 +776,156 @@
     </div>
 
     <!-- ==================== MAIN APP DASHBOARD ==================== -->
-    <div id="appScreen" class="hidden min-h-screen flex flex-col md:flex-row">
+    <div id="appScreen" class="hidden app-layout">
 
         <!-- LEFT SIDEBAR -->
-        <aside class="w-full md:w-72 glass border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between">
+        <aside class="glass sidebar">
             <div>
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-slate-950 text-xl shadow-lg">
-                            S
-                        </div>
+                <div class="sidebar-top-row">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="logo-box logo-box-sm">S</div>
                         <div>
-                            <h1 class="text-xl font-bold tracking-tight text-white">Smriti<span class="text-cyan-400">AI</span></h1>
-                            <p id="userDisplayName" class="text-xs text-cyan-300 font-medium truncate max-w-[140px]">User</p>
+                            <h1 class="brand-title" style="font-size:20px;">Smriti<span>AI</span></h1>
+                            <p id="userDisplayName" class="user-name-tag">User</p>
                         </div>
                     </div>
-                    <button type="button" onclick="logout()" title="Logout"
-                        class="text-xs bg-slate-800 hover:bg-rose-600/30 text-slate-300 hover:text-rose-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
-                        Logout
-                    </button>
+                    <button type="button" onclick="logout()" class="btn-logout">Logout</button>
                 </div>
 
-                <!-- FOLDERS HEADER WITH + NEW BUTTON -->
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Your Private Folders</span>
-                    <button type="button" onclick="openFolderModal()" title="Create New Folder"
-                        class="flex items-center gap-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg shadow transition">
-                        <span class="text-sm leading-none font-bold">+</span>
+                <div class="folders-header">
+                    <span class="folders-label">Your Private Folders</span>
+                    <button type="button" onclick="openFolderModal()" class="btn-new-folder">
+                        <span>+</span>
                         <span>New</span>
                     </button>
                 </div>
 
-                <nav id="folderList" class="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
-                    <!-- Dynamic folders -->
-                </nav>
+                <nav id="folderList" class="folder-nav"></nav>
             </div>
 
-            <div class="mt-6 pt-4 border-t border-slate-800 space-y-2">
-                <button type="button" id="voiceToggleBtn" onclick="toggleVoiceReply()"
-                    class="w-full text-xs px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-300 flex items-center justify-between hover:border-cyan-500/40 transition">
+            <div class="sidebar-footer">
+                <button type="button" id="voiceToggleBtn" onclick="toggleVoiceReply()" class="voice-btn">
                     <span>AI Voice Reply</span>
-                    <span id="voiceStatusText" class="text-emerald-400 font-semibold">ON</span>
+                    <span id="voiceStatusText" style="color:#34d399;font-weight:700;">ON</span>
                 </button>
-                <div id="aiModeBadge" class="text-xs px-3 py-2 rounded-lg bg-slate-900/80 text-slate-300 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <div id="aiModeBadge" class="ai-badge">
+                    <span class="dot dot-green"></span>
                     <span>Checking AI...</span>
                 </div>
             </div>
         </aside>
 
         <!-- MAIN WORKSPACE -->
-        <main class="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 md:p-8">
+        <main class="workspace">
 
             <!-- CONVERSATIONAL AI CARD -->
-            <section class="glass rounded-2xl p-5 md:p-6 shadow-2xl mb-6 border border-indigo-500/25">
-                <div class="flex items-start gap-4 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center shrink-0 text-cyan-300 font-bold">
-                        AI
-                    </div>
-                    <div class="flex-1">
-                        <h2 id="aiGreeting" class="text-lg md:text-xl font-semibold text-white">
+            <section class="glass ai-card">
+                <div class="ai-header">
+                    <div class="ai-avatar">AI</div>
+                    <div>
+                        <h2 id="aiGreeting" class="ai-greeting">
                             Welcome! What special memory would you like to save today?
                         </h2>
-                        <p id="aiSubReply" class="text-sm text-cyan-300 mt-1">
+                        <p id="aiSubReply" class="ai-sub">
                             Click any folder on the left to write inside it, or type/speak naturally below.
                         </p>
                     </div>
                 </div>
 
-                <!-- ACTIVE FOLDER BANNER (Shown when a specific folder is clicked) -->
-                <div id="activeFolderBanner" class="hidden mb-3 flex items-center justify-between bg-indigo-950/80 border border-cyan-500/40 px-3.5 py-2 rounded-xl text-xs">
-                    <div class="flex items-center gap-2 text-cyan-200">
-                        <span class="text-amber-400 text-sm">📁</span>
-                        <span>Writing inside folder: <strong id="activeFolderLabel" class="text-white"></strong></span>
+                <!-- ACTIVE FOLDER BANNER -->
+                <div id="activeFolderBanner" class="hidden active-banner">
+                    <div>
+                        <span>📁 Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
                     </div>
-                    <button type="button" onclick="resetFilters()" class="text-slate-300 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-slate-900/70 transition">
+                    <button type="button" onclick="resetFilters()" class="btn-exit-folder">
                         Exit Folder ×
                     </button>
                 </div>
 
-                <!-- Image Attachment Preview -->
-                <div id="imagePreviewBox" class="hidden mb-3 flex items-center gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 w-fit">
+                <!-- IMAGE PREVIEW -->
+                <div id="imagePreviewBox" class="hidden img-preview-box">
                     <img id="imagePreview"
                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                         alt="Selected Image Preview"
-                        class="w-12 h-12 object-cover rounded-lg">
-                    <div class="text-xs text-slate-300">
-                        <p id="imageName" class="font-medium truncate max-w-[180px]"></p>
-                        <p class="text-emerald-400">AI will automatically scan and extract text from this image</p>
+                        class="img-preview-thumb">
+                    <div style="font-size:12px;color:#cbd5e1;">
+                        <p id="imageName" style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></p>
+                        <p style="color:#34d399;">AI will scan and extract text from this image</p>
                     </div>
                     <button type="button" onclick="clearImage()" aria-label="Remove Image"
-                        class="text-slate-400 hover:text-rose-400 px-2 text-lg font-bold">×</button>
+                        style="background:transparent;border:none;color:#94a3b8;font-size:18px;font-weight:700;cursor:pointer;padding:0 6px;">×</button>
                 </div>
 
-                <!-- Input Bar -->
-                <form id="memoryForm" onsubmit="handleSend(event)" class="flex flex-col sm:flex-row gap-2.5">
-                    <div class="flex-1 flex items-center bg-slate-900/90 border border-slate-700 focus-within:border-cyan-400 rounded-xl px-3 py-2">
+                <!-- INPUT BAR -->
+                <form id="memoryForm" onsubmit="handleSend(event)" class="chat-form">
+                    <div class="input-bar">
                         <input type="file" id="imageInput" accept="image/*" aria-label="Attach Image" class="hidden" onchange="previewSelectedImage(event)">
-                        
-                        <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Receipt or Photo"
-                            class="p-2 text-slate-400 hover:text-cyan-400 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+
+                        <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Receipt or Photo" class="icon-btn">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                             </svg>
                         </button>
 
                         <input type="text" id="userInput" autocomplete="off" aria-label="Memory Input"
                             placeholder="Type a note or click the mic to speak..."
-                            class="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none px-2 text-sm md:text-base">
+                            class="chat-text-input">
 
-                        <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak to type"
-                            class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak to type" class="icon-btn">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
                             </svg>
                         </button>
                     </div>
 
-                    <button type="submit" id="sendBtn"
-                        class="bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0">
+                    <button type="submit" id="sendBtn" class="btn-send">
                         <span id="sendBtnText">Save / Ask AI</span>
                     </button>
                 </form>
             </section>
 
             <!-- SEARCH & FILTER HEADER -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <h3 id="timelineTitle" class="text-lg font-bold text-slate-200">All Memories (Date-Wise Timeline)</h3>
-                <div class="flex items-center gap-2">
+            <div class="timeline-bar">
+                <h3 id="timelineTitle" class="timeline-heading">All Memories (Date-Wise Timeline)</h3>
+                <div class="search-group">
                     <input type="text" id="quickSearchInput" oninput="handleQuickSearch(this.value)"
                         aria-label="Search Memories"
-                        placeholder="Instant search (notes or receipts)..."
-                        class="bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 w-56">
-                    <button type="button" onclick="resetFilters()" class="text-xs text-cyan-400 hover:underline px-2">Reset</button>
+                        placeholder="Search notes or receipts..."
+                        class="search-input">
+                    <button type="button" onclick="resetFilters()" class="btn-reset">Reset</button>
                 </div>
             </div>
 
             <!-- TIMELINE FEED -->
-            <div id="timelineContainer" class="space-y-6 pb-12"></div>
+            <div id="timelineContainer" style="padding-bottom:48px;"></div>
         </main>
     </div>
 
     <!-- CREATE NEW FOLDER MODAL -->
-    <div id="folderModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-        <div class="glass max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-indigo-500/30">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-white">Create New Folder</h3>
-                <button type="button" onclick="closeFolderModal()" class="text-slate-400 hover:text-white text-xl font-bold">×</button>
+    <div id="folderModal" class="hidden modal-backdrop">
+        <div class="glass modal-card">
+            <div class="modal-header">
+                <h3 style="font-size:17px;font-weight:700;color:#fff;">Create New Folder</h3>
+                <button type="button" onclick="closeFolderModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;">×</button>
             </div>
-            <form onsubmit="handleCreateFolder(event)" class="space-y-4">
-                <div>
-                    <label for="newFolderNameInput" class="block text-xs text-slate-400 mb-1.5">Folder Name</label>
-                    <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills"
-                        class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeFolderModal()"
-                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" id="createFolderSubmitBtn"
-                        class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-cyan-500 text-white hover:from-indigo-500 hover:to-cyan-400 transition">
-                        Create & Open
-                    </button>
+            <form onsubmit="handleCreateFolder(event)">
+                <label for="newFolderNameInput" class="form-label">Folder Name</label>
+                <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills" class="form-input">
+                <div class="modal-actions">
+                    <button type="button" onclick="closeFolderModal()" class="btn-cancel">Cancel</button>
+                    <button type="submit" id="createFolderSubmitBtn" class="btn-confirm">Create & Open</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- FULL IMAGE MODAL -->
-    <div id="imageModal" onclick="closeModal()" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 cursor-pointer">
+    <div id="imageModal" onclick="closeModal()" class="hidden modal-backdrop" style="cursor:pointer;">
         <img id="modalImg"
             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             alt="Full Size Memory Preview"
-            class="max-h-[90vh] max-w-[95vw] rounded-xl shadow-2xl border border-slate-700">
+            class="full-img">
     </div>
 
     <script>
@@ -290,13 +956,13 @@
             document.getElementById("authError").classList.add("hidden");
 
             if (mode === "register") {
-                tabRegister.className = "py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
-                tabLogin.className = "py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition";
+                tabRegister.classList.add("active");
+                tabLogin.classList.remove("active");
                 nameBox.classList.remove("hidden");
                 btn.innerText = "Create Private Vault";
             } else {
-                tabLogin.className = "py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition";
-                tabRegister.className = "py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition";
+                tabLogin.classList.add("active");
+                tabRegister.classList.remove("active");
                 nameBox.classList.add("hidden");
                 btn.innerText = "Open Vault";
             }
@@ -418,7 +1084,7 @@
             voiceReplyEnabled = !voiceReplyEnabled;
             const statusText = document.getElementById("voiceStatusText");
             statusText.innerText = voiceReplyEnabled ? "ON" : "OFF";
-            statusText.className = voiceReplyEnabled ? "text-emerald-400 font-semibold" : "text-slate-500 font-semibold";
+            statusText.style.color = voiceReplyEnabled ? "#34d399" : "#64748b";
         }
 
         function speakText(text) {
@@ -491,36 +1157,36 @@
 
             const badge = document.getElementById("aiModeBadge");
             if (data.gemini_active) {
-                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span><span>Gemini 2.5 Vision AI Active</span>`;
+                badge.innerHTML = `<span class="dot dot-green"></span><span>Gemini 2.5 Vision AI Active</span>`;
             } else {
-                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span><span>Smart Local Mode Active</span>`;
+                badge.innerHTML = `<span class="dot dot-amber"></span><span>Smart Local Mode Active</span>`;
             }
 
             const folderList = document.getElementById("folderList");
             const totalCount = data.folders.reduce((acc, f) => acc + f.count, 0);
+            const allActive = !activeFolderId && !searchKw;
             let foldersHtml = `
-                <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)', null)"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition ${!activeFolderId && !searchKw ? 'bg-indigo-600/30 text-cyan-300 border border-indigo-500/40' : 'text-slate-300 hover:bg-slate-800/60'}">
-                    <span>All Memories</span>
-                    <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${totalCount}</span>
-                </button>
+                <div class="folder-row ${allActive ? 'active' : ''}">
+                    <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)', null)" class="folder-select-btn" style="padding-right:0;">
+                        <span>All Memories</span>
+                        <span class="count-pill">${totalCount}</span>
+                    </button>
+                </div>
             `;
 
             data.folders.forEach(f => {
                 const isActive = activeFolderId === f.id;
                 foldersHtml += `
-                    <div class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition ${isActive ? 'bg-indigo-600/30 text-cyan-300 border border-indigo-500/40' : 'text-slate-300 hover:bg-slate-800/60'}">
-                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="selectFolderFromBtn(this)"
-                            class="flex-1 flex items-center justify-between text-left truncate pr-2">
-                            <span class="flex items-center gap-2 truncate">
-                                <span class="text-amber-400">📁</span> ${escapeHtml(f.name)}
+                    <div class="folder-row ${isActive ? 'active' : ''}">
+                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="selectFolderFromBtn(this)" class="folder-select-btn">
+                            <span class="folder-name-wrap">
+                                <span style="color:#fbbf24;">📁</span> ${escapeHtml(f.name)}
                             </span>
-                            <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${f.count}</span>
+                            <span class="count-pill">${f.count}</span>
                         </button>
                         <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="deleteFolderFromBtn(this)"
-                            title="Delete Folder" aria-label="Delete Folder"
-                            class="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-1 rounded-lg transition shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            title="Delete Folder" aria-label="Delete Folder" class="btn-del-folder">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
                         </button>
@@ -545,9 +1211,9 @@
                     ? `Type a note or upload a photo in the box above to save it inside "${escapeHtml(activeFolderName)}"!`
                     : `Click "+ New" on the left to create a folder, or type/speak above to save your first memory!`;
                 container.innerHTML = `
-                    <div class="glass rounded-2xl p-10 text-center text-slate-400">
-                        <p class="text-base font-medium text-slate-300">No memories saved here yet.</p>
-                        <p class="text-xs mt-1">${emptyHint}</p>
+                    <div class="glass empty-box">
+                        <p style="font-size:16px;font-weight:600;color:#e2e8f0;">No memories saved here yet.</p>
+                        <p style="font-size:12px;margin-top:6px;">${emptyHint}</p>
                     </div>
                 `;
                 return;
@@ -563,43 +1229,37 @@
             for (const [dateLabel, items] of Object.entries(grouped)) {
                 const isToday = dateLabel === "Today";
                 html += `
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold ${isToday ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-300'}">
-                                ${escapeHtml(dateLabel)}
-                            </span>
-                            <div class="h-px bg-slate-800 flex-1"></div>
+                    <div class="date-section">
+                        <div class="date-divider">
+                            <span class="date-pill ${isToday ? 'today' : ''}">${escapeHtml(dateLabel)}</span>
+                            <div class="divider-line"></div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="cards-grid">
                 `;
 
                 items.forEach(item => {
                     html += `
-                        <div class="glass rounded-xl p-4 flex flex-col justify-between hover:border-slate-600 transition">
+                        <div class="glass memory-card">
                             <div>
-                                <div class="flex items-center justify-between gap-2 mb-2.5">
-                                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                        📁 ${escapeHtml(item.folder_name)}
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-slate-400">${escapeHtml(item.time_only)}</span>
-                                        <button type="button" onclick="deleteMemory(${item.id})" title="Delete" class="text-slate-500 hover:text-rose-400 text-sm font-bold px-1">×</button>
+                                <div class="card-top">
+                                    <span class="folder-tag">📁 ${escapeHtml(item.folder_name)}</span>
+                                    <div class="card-meta">
+                                        <span>${escapeHtml(item.time_only)}</span>
+                                        <button type="button" onclick="deleteMemory(${item.id})" title="Delete" class="btn-del-mem">×</button>
                                     </div>
                                 </div>
-                                <p class="text-sm text-slate-100 leading-relaxed">${escapeHtml(item.content)}</p>
+                                <p class="card-text">${escapeHtml(item.content)}</p>
                                 ${item.ocr_text ? `
-                                    <div class="mt-2.5 p-2 rounded-lg bg-slate-950/70 border border-cyan-500/20 text-xs text-cyan-200">
-                                        <span class="font-semibold text-cyan-400">AI Image Scan:</span> ${escapeHtml(item.ocr_text)}
+                                    <div class="ocr-box">
+                                        <strong style="color:#22d3ee;">AI Image Scan:</strong> ${escapeHtml(item.ocr_text)}
                                     </div>
                                 ` : ''}
                                 ${item.image_path ? `
-                                    <div class="mt-3">
-                                        <img src="${escapeHtml(item.image_path)}"
-                                            data-full-src="${escapeHtml(item.image_path)}"
-                                            onclick="openModal(this.dataset.fullSrc)"
-                                            class="w-full h-40 object-cover rounded-lg border border-slate-700 cursor-pointer hover:opacity-90 transition"
-                                            alt="Saved Document">
-                                    </div>
+                                    <img src="${escapeHtml(item.image_path)}"
+                                        data-full-src="${escapeHtml(item.image_path)}"
+                                        onclick="openModal(this.dataset.fullSrc)"
+                                        class="memory-img"
+                                        alt="Saved Document">
                                 ` : ''}
                             </div>
                         </div>
@@ -721,8 +1381,8 @@
             recognition.lang = "en-IN";
             const micBtn = document.getElementById("micBtn");
 
-            recognition.onstart = () => micBtn.classList.add("pulse-mic", "text-rose-400");
-            recognition.onend = () => micBtn.classList.remove("pulse-mic", "text-rose-400");
+            recognition.onstart = () => micBtn.classList.add("pulse-mic");
+            recognition.onend = () => micBtn.classList.remove("pulse-mic");
             recognition.onresult = (event) => {
                 document.getElementById("userInput").value = event.results[0][0].transcript;
             };
