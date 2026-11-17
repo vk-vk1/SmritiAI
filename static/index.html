@@ -3,929 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SmritiAI — Smart Conversational Memory Vault for Personal and Family Records">
     <title>SmritiAI — Smart Conversational Memory Vault</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: radial-gradient(circle at top left, #0f172a, #020617);
             color: #f8fafc;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh;
-            line-height: 1.5;
         }
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
         .glass {
-            background: rgba(30, 41, 59, 0.65);
-            -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(30, 41, 59, 0.72);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
         }
-
-        /* ==================== AUTH SCREEN ==================== */
-        .auth-wrapper {
+        .auth-wrap {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 16px;
         }
-        .auth-card {
+        .auth-box {
             width: 100%;
-            max-width: 420px;
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            max-width: 400px;
+            border-radius: 22px;
+            padding: 28px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
         }
-        .brand-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        .logo-box {
-            width: 48px;
-            height: 48px;
-            border-radius: 16px;
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .logo {
+            width: 42px; height: 42px; border-radius: 12px;
             background: linear-gradient(135deg, #6366f1, #22d3ee);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            color: #020617;
-            font-size: 24px;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; color: #020617; font-size: 20px; flex-shrink: 0;
         }
-        .logo-box-sm {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            font-size: 20px;
+        .tabs {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+            background: #0f172a; padding: 5px; border-radius: 12px; margin-bottom: 18px;
         }
-        .brand-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #ffffff;
+        .tab {
+            padding: 9px; border: none; border-radius: 8px; font-size: 13px;
+            font-weight: 600; cursor: pointer; background: transparent; color: #94a3b8;
         }
-        .brand-title span {
-            color: #22d3ee;
+        .tab.active { background: #4f46e5; color: #fff; }
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+        .inp {
+            width: 100%; background: #0f172a; border: 1px solid #334155;
+            border-radius: 10px; padding: 11px 13px; font-size: 14px; color: #fff; outline: none;
         }
-        .brand-sub {
-            font-size: 12px;
-            color: #94a3b8;
+        .inp:focus { border-color: #22d3ee; }
+        .err {
+            font-size: 12px; color: #fda4af; background: rgba(136, 19, 55, 0.5);
+            border: 1px solid #f43f5e; border-radius: 8px; padding: 9px; margin-bottom: 12px;
         }
-        .auth-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            background: rgba(15, 23, 42, 0.9);
-            padding: 5px;
-            border-radius: 12px;
-            margin-bottom: 22px;
+        .btn-main {
+            width: 100%; background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            color: #fff; font-weight: 600; font-size: 14px; padding: 12px;
+            border: none; border-radius: 10px; cursor: pointer;
         }
-        .tab-btn {
-            padding: 9px 12px;
-            border: none;
-            border-radius: 9px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            background: transparent;
-            color: #94a3b8;
-            transition: 0.2s;
-        }
-        .tab-btn.active {
-            background: #4f46e5;
-            color: #ffffff;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-label {
-            display: block;
-            font-size: 12px;
-            color: #94a3b8;
-            margin-bottom: 6px;
-        }
-        .form-input {
-            width: 100%;
-            background: rgba(15, 23, 42, 0.92);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 12px 14px;
-            font-size: 14px;
-            color: #ffffff;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-input:focus {
-            border-color: #22d3ee;
-        }
-        .error-box {
-            font-size: 12px;
-            color: #fda4af;
-            background: rgba(136, 19, 55, 0.45);
-            border: 1px solid rgba(244, 63, 94, 0.35);
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 14px;
-        }
-        .btn-primary {
-            width: 100%;
-            background: linear-gradient(90deg, #4f46e5, #06b6d4);
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 14px;
-            padding: 12px 18px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.3);
-            transition: opacity 0.2s;
-        }
-        .btn-primary:hover {
-            opacity: 0.92;
-        }
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* ==================== MAIN DASHBOARD ==================== */
-        .app-layout {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        @media (min-width: 768px) {
-            .app-layout {
-                flex-direction: row;
-            }
-        }
+        .btn-main:disabled { opacity: 0.6; cursor: not-allowed; }
+        .layout { min-height: 100vh; display: flex; flex-direction: column; }
+        @media (min-width: 768px) { .layout { flex-direction: row; } }
         .sidebar {
-            width: 100%;
-            padding: 20px;
-            border-bottom: 1px solid #1e293b;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            width: 100%; padding: 20px; border-bottom: 1px solid #1e293b;
+            display: flex; flex-direction: column; justify-content: space-between;
         }
         @media (min-width: 768px) {
-            .sidebar {
-                width: 290px;
-                flex-shrink: 0;
-                border-bottom: none;
-                border-right: 1px solid #1e293b;
-            }
+            .sidebar { width: 280px; flex-shrink: 0; border-bottom: none; border-right: 1px solid #1e293b; }
         }
-        .sidebar-top-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 24px;
+        .row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .btn-sm {
+            font-size: 12px; background: #1e293b; color: #cbd5e1;
+            border: 1px solid #334155; padding: 5px 10px; border-radius: 8px; cursor: pointer;
         }
-        .user-name-tag {
-            font-size: 12px;
-            color: #67e8f9;
-            font-weight: 500;
-            max-width: 130px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .btn-new {
+            font-size: 12px; font-weight: 600; background: #4f46e5; color: #fff;
+            border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer;
         }
-        .btn-logout {
-            font-size: 12px;
-            background: #1e293b;
-            color: #cbd5e1;
-            border: 1px solid #334155;
-            padding: 6px 10px;
-            border-radius: 8px;
-            cursor: pointer;
+        .folder-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 48vh; overflow-y: auto; }
+        .f-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 10px; border-radius: 10px; border: 1px solid transparent;
         }
-        .btn-logout:hover {
-            background: rgba(225, 29, 72, 0.25);
-            color: #fda4af;
+        .f-row:hover { background: rgba(30, 41, 59, 0.75); }
+        .f-row.active { background: rgba(79, 70, 229, 0.3); border-color: rgba(99, 102, 241, 0.5); }
+        .f-btn {
+            flex: 1; display: flex; align-items: center; justify-content: space-between;
+            background: transparent; border: none; color: #e2e8f0; font-size: 14px;
+            cursor: pointer; text-align: left; padding-right: 8px; overflow: hidden;
         }
-        .folders-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
+        .f-row.active .f-btn { color: #67e8f9; font-weight: 600; }
+        .pill { font-size: 11px; background: #1e293b; color: #cbd5e1; padding: 2px 8px; border-radius: 99px; }
+        .del-f { background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+        .del-f:hover { color: #fb7185; }
+        .main { flex: 1; max-width: 960px; width: 100%; margin: 0 auto; padding: 20px; }
+        .card { border-radius: 18px; padding: 20px; margin-bottom: 22px; }
+        .banner {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(30, 27, 75, 0.9); border: 1px solid #22d3ee;
+            padding: 8px 12px; border-radius: 10px; font-size: 12px; color: #a5f3fc; margin: 12px 0;
         }
-        .folders-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #94a3b8;
+        .chat-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+        .input-box {
+            flex: 1; min-width: 240px; display: flex; align-items: center;
+            background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 4px 8px;
         }
-        .btn-new-folder {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            background: #4f46e5;
-            color: #ffffff;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-new-folder:hover {
-            background: #6366f1;
-        }
-        .folder-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 48vh;
-            overflow-y: auto;
-        }
-        .folder-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            transition: background 0.15s;
-        }
-        .folder-row:hover {
-            background: rgba(30, 41, 59, 0.7);
-        }
-        .folder-row.active {
-            background: rgba(79, 70, 229, 0.28);
-            border-color: rgba(99, 102, 241, 0.45);
-        }
-        .folder-select-btn {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: transparent;
-            border: none;
-            color: #e2e8f0;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            text-align: left;
-            padding-right: 8px;
-            overflow: hidden;
-        }
-        .folder-row.active .folder-select-btn {
-            color: #67e8f9;
-        }
-        .folder-name-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .count-pill {
-            font-size: 11px;
-            background: #1e293b;
-            color: #cbd5e1;
-            padding: 2px 8px;
-            border-radius: 999px;
-            flex-shrink: 0;
-        }
-        .btn-del-folder {
-            background: transparent;
-            border: none;
-            color: #64748b;
-            padding: 4px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-del-folder:hover {
-            color: #fb7185;
-            background: rgba(244, 63, 94, 0.15);
-        }
-        .sidebar-footer {
-            margin-top: 24px;
-            padding-top: 16px;
-            border-top: 1px solid #1e293b;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .voice-btn {
-            width: 100%;
-            font-size: 12px;
-            padding: 9px 12px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid #334155;
-            color: #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-        }
-        .ai-badge {
-            font-size: 12px;
-            padding: 9px 12px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.85);
-            color: #cbd5e1;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            display: inline-block;
-            flex-shrink: 0;
-        }
-        .dot-green { background: #34d399; }
-        .dot-amber { background: #fbbf24; }
-
-        /* ==================== MAIN WORKSPACE ==================== */
-        .workspace {
-            flex: 1;
-            max-width: 980px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        @media (min-width: 768px) {
-            .workspace {
-                padding: 32px;
-            }
-        }
-        .ai-card {
-            border-radius: 20px;
-            padding: 22px;
-            margin-bottom: 24px;
-            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.28);
-        }
-        .ai-header {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 16px;
-        }
-        .ai-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(79, 70, 229, 0.3);
-            border: 1px solid rgba(129, 140, 248, 0.45);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #67e8f9;
-            font-weight: 700;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
-        .ai-greeting {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        .ai-sub {
-            font-size: 13px;
-            color: #67e8f9;
-            margin-top: 4px;
-        }
-        .active-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(30, 27, 75, 0.85);
-            border: 1px solid rgba(34, 211, 238, 0.4);
-            padding: 8px 14px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: #a5f3fc;
-            margin-bottom: 12px;
-        }
-        .btn-exit-folder {
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid #334155;
-            color: #e2e8f0;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-exit-folder:hover {
-            color: #fda4af;
-            border-color: #fb7185;
-        }
-        .img-preview-box {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid #334155;
-            padding: 10px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-        }
-        .img-preview-thumb {
-            width: 48px;
-            height: 48px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .chat-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        @media (min-width: 640px) {
-            .chat-form {
-                flex-direction: row;
-            }
-        }
-        .input-bar {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            background: rgba(15, 23, 42, 0.92);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 6px 10px;
-        }
-        .input-bar:focus-within {
-            border-color: #22d3ee;
+        .input-box input {
+            flex: 1; background: transparent; border: none; color: #fff;
+            font-size: 14px; padding: 8px; outline: none;
         }
         .icon-btn {
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: transparent; border: none; color: #94a3b8;
+            font-size: 16px; padding: 6px 8px; cursor: pointer;
         }
-        .icon-btn:hover {
-            color: #22d3ee;
-            background: rgba(30, 41, 59, 0.8);
+        .icon-btn:hover { color: #22d3ee; }
+        .send-btn {
+            background: linear-gradient(90deg, #4f46e5, #06b6d4); color: #fff;
+            font-weight: 600; border: none; border-radius: 10px; padding: 11px 20px; cursor: pointer;
         }
-        .chat-text-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #ffffff;
-            font-size: 14px;
-            padding: 6px 8px;
-            outline: none;
-            min-width: 0;
+        .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 10px; }
+        @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+        .mem-card { border-radius: 14px; padding: 15px; }
+        .tag {
+            font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 6px;
+            background: rgba(99, 102, 241, 0.25); color: #a5b4fc;
         }
-        .btn-send {
-            background: linear-gradient(90deg, #4f46e5, #06b6d4);
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 14px;
-            padding: 12px 22px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            white-space: nowrap;
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82);
+            z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px;
         }
-        .btn-send:disabled {
-            opacity: 0.6;
-        }
-        .pulse-mic {
-            animation: pulseRed 1.4s infinite;
-            color: #fb7185 !important;
-        }
-        @keyframes pulseRed {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        /* ==================== TIMELINE ==================== */
-        .timeline-bar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .timeline-heading {
-            font-size: 17px;
-            font-weight: 700;
-            color: #e2e8f0;
-        }
-        .search-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .search-input {
-            background: rgba(15, 23, 42, 0.92);
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 7px 12px;
-            font-size: 12px;
-            color: #ffffff;
-            width: 210px;
-            outline: none;
-        }
-        .search-input:focus {
-            border-color: #22d3ee;
-        }
-        .btn-reset {
-            background: transparent;
-            border: none;
-            color: #22d3ee;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            padding: 4px 6px;
-        }
-        .date-section {
-            margin-bottom: 24px;
-        }
-        .date-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .date-pill {
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            background: #1e293b;
-            color: #cbd5e1;
-        }
-        .date-pill.today {
-            background: rgba(16, 185, 129, 0.2);
-            color: #6ee7b7;
-            border: 1px solid rgba(16, 185, 129, 0.4);
-        }
-        .divider-line {
-            height: 1px;
-            background: #1e293b;
-            flex: 1;
-        }
-        .cards-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 14px;
-        }
-        @media (min-width: 768px) {
-            .cards-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        .memory-card {
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .card-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        .folder-tag {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 3px 10px;
-            border-radius: 6px;
-            background: rgba(99, 102, 241, 0.2);
-            color: #a5b4fc;
-            border: 1px solid rgba(99, 102, 241, 0.35);
-        }
-        .card-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            color: #94a3b8;
-        }
-        .btn-del-mem {
-            background: transparent;
-            border: none;
-            color: #64748b;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            padding: 0 4px;
-        }
-        .btn-del-mem:hover {
-            color: #fb7185;
-        }
-        .card-text {
-            font-size: 14px;
-            color: #f1f5f9;
-            line-height: 1.55;
-            white-space: pre-wrap;
-        }
-        .ocr-box {
-            margin-top: 10px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            background: rgba(2, 6, 23, 0.75);
-            border: 1px solid rgba(34, 211, 238, 0.25);
-            font-size: 12px;
-            color: #a5f3fc;
-        }
-        .memory-img {
-            margin-top: 12px;
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 1px solid #334155;
-            cursor: pointer;
-        }
-        .empty-box {
-            border-radius: 18px;
-            padding: 40px 20px;
-            text-align: center;
-            color: #94a3b8;
-        }
-
-        /* ==================== MODALS ==================== */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.82);
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .modal-card {
-            width: 100%;
-            max-width: 380px;
-            border-radius: 18px;
-            padding: 24px;
-            border: 1px solid rgba(99, 102, 241, 0.35);
-        }
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 16px;
-        }
-        .btn-cancel {
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 600;
-            background: #1e293b;
-            color: #cbd5e1;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-confirm {
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 600;
-            background: linear-gradient(90deg, #4f46e5, #06b6d4);
-            color: #ffffff;
-            border: none;
-            cursor: pointer;
-        }
-        .full-img {
-            max-height: 90vh;
-            max-width: 95vw;
-            border-radius: 12px;
-            border: 1px solid #334155;
-        }
+        .modal-box { width: 100%; max-width: 360px; border-radius: 16px; padding: 22px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     </style>
 </head>
 <body>
 
-    <!-- ==================== AUTH SCREEN (LOGIN / SIGNUP) ==================== -->
-    <div id="authScreen" class="auth-wrapper">
-        <div class="glass auth-card">
-            <div class="brand-row">
-                <div class="logo-box">S</div>
+    <!-- AUTH SCREEN -->
+    <div id="authScreen" class="auth-wrap">
+        <div class="glass auth-box">
+            <div class="brand">
+                <div class="logo">S</div>
                 <div>
-                    <h1 class="brand-title">Smriti<span>AI</span></h1>
-                    <p class="brand-sub">Personal & Family Smart Memory Vault</p>
+                    <h1 style="font-size:22px;">Smriti<span style="color:#22d3ee;">AI</span></h1>
+                    <p style="font-size:12px;color:#94a3b8;">Personal & Family Smart Memory Vault</p>
                 </div>
             </div>
 
-            <div class="auth-tabs">
-                <button type="button" id="tabLogin" onclick="switchAuthTab('login')" class="tab-btn active">
-                    Login
-                </button>
-                <button type="button" id="tabRegister" onclick="switchAuthTab('register')" class="tab-btn">
-                    Create Account
-                </button>
+            <div class="tabs">
+                <button type="button" id="tabLogin" class="tab active" onclick="switchAuthTab('login')">Login</button>
+                <button type="button" id="tabRegister" class="tab" onclick="switchAuthTab('register')">Create Account</button>
             </div>
 
-            <form id="authForm" onsubmit="handleAuth(event)">
-                <div id="nameFieldBox" class="form-group hidden">
-                    <label for="authName" class="form-label">Full Name</label>
-                    <input type="text" id="authName" placeholder="Enter your full name" class="form-input">
+            <form onsubmit="handleAuth(event)">
+                <div id="nameFieldBox" class="field hidden">
+                    <label for="authName">Full Name</label>
+                    <input type="text" id="authName" placeholder="Enter your full name" class="inp">
                 </div>
-
-                <div class="form-group">
-                    <label for="authUsername" class="form-label">Mobile Number or Username</label>
-                    <input type="text" id="authUsername" required placeholder="Enter your mobile number or username" class="form-input">
+                <div class="field">
+                    <label for="authUsername">Mobile Number or Username</label>
+                    <input type="text" id="authUsername" required placeholder="e.g. vishnu" class="inp">
                 </div>
-
-                <div class="form-group">
-                    <label for="authPassword" class="form-label">Password</label>
-                    <input type="password" id="authPassword" required placeholder="Minimum 4 characters" class="form-input">
+                <div class="field">
+                    <label for="authPassword">Password</label>
+                    <input type="password" id="authPassword" required placeholder="Minimum 4 characters" class="inp">
                 </div>
-
-                <p id="authError" class="hidden error-box"></p>
-
-                <button type="submit" id="authSubmitBtn" class="btn-primary">
-                    Open Vault
-                </button>
+                <p id="authError" class="err hidden"></p>
+                <button type="submit" id="authSubmitBtn" class="btn-main">Open Vault</button>
             </form>
         </div>
     </div>
 
-    <!-- ==================== MAIN APP DASHBOARD ==================== -->
-    <div id="appScreen" class="hidden app-layout">
-
-        <!-- LEFT SIDEBAR -->
+    <!-- MAIN DASHBOARD -->
+    <div id="appScreen" class="hidden layout">
         <aside class="glass sidebar">
             <div>
-                <div class="sidebar-top-row">
+                <div class="row-between" style="margin-bottom:22px;">
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <div class="logo-box logo-box-sm">S</div>
+                        <div class="logo" style="width:36px;height:36px;font-size:18px;">S</div>
                         <div>
-                            <h1 class="brand-title" style="font-size:20px;">Smriti<span>AI</span></h1>
-                            <p id="userDisplayName" class="user-name-tag">User</p>
+                            <h2 style="font-size:18px;">Smriti<span style="color:#22d3ee;">AI</span></h2>
+                            <p id="userDisplayName" style="font-size:12px;color:#67e8f9;">User</p>
                         </div>
                     </div>
-                    <button type="button" onclick="logout()" class="btn-logout">Logout</button>
+                    <button type="button" onclick="logout()" class="btn-sm">Logout</button>
                 </div>
 
-                <div class="folders-header">
-                    <span class="folders-label">Your Private Folders</span>
-                    <button type="button" onclick="openFolderModal()" class="btn-new-folder">
-                        <span>+</span>
-                        <span>New</span>
-                    </button>
+                <div class="row-between">
+                    <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Your Private Folders</span>
+                    <button type="button" onclick="openFolderModal()" class="btn-new">+ New</button>
                 </div>
-
-                <nav id="folderList" class="folder-nav"></nav>
+                <nav id="folderList" class="folder-list"></nav>
             </div>
 
-            <div class="sidebar-footer">
-                <button type="button" id="voiceToggleBtn" onclick="toggleVoiceReply()" class="voice-btn">
+            <div style="margin-top:20px;padding-top:14px;border-top:1px solid #1e293b;display:flex;flex-direction:column;gap:8px;">
+                <button type="button" onclick="toggleVoiceReply()" class="btn-sm row-between" style="width:100%;padding:8px 10px;">
                     <span>AI Voice Reply</span>
                     <span id="voiceStatusText" style="color:#34d399;font-weight:700;">ON</span>
                 </button>
-                <div id="aiModeBadge" class="ai-badge">
-                    <span class="dot dot-green"></span>
-                    <span>Checking AI...</span>
+                <div id="aiModeBadge" style="font-size:12px;padding:8px 10px;border-radius:8px;background:#0f172a;color:#cbd5e1;">
+                    Checking AI...
                 </div>
             </div>
         </aside>
 
-        <!-- MAIN WORKSPACE -->
-        <main class="workspace">
+        <main class="main">
+            <section class="glass card">
+                <h2 id="aiGreeting" style="font-size:18px;">Welcome! What special memory would you like to save today?</h2>
+                <p id="aiSubReply" style="font-size:13px;color:#67e8f9;margin-top:4px;">Click any folder on the left to write inside it, or type/speak naturally below.</p>
 
-            <!-- CONVERSATIONAL AI CARD -->
-            <section class="glass ai-card">
-                <div class="ai-header">
-                    <div class="ai-avatar">AI</div>
-                    <div>
-                        <h2 id="aiGreeting" class="ai-greeting">
-                            Welcome! What special memory would you like to save today?
-                        </h2>
-                        <p id="aiSubReply" class="ai-sub">
-                            Click any folder on the left to write inside it, or type/speak naturally below.
-                        </p>
-                    </div>
+                <div id="activeFolderBanner" class="banner hidden">
+                    <span>📁 Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
+                    <button type="button" onclick="resetFilters()" class="btn-sm" style="padding:3px 8px;">Exit Folder ×</button>
                 </div>
 
-                <!-- ACTIVE FOLDER BANNER -->
-                <div id="activeFolderBanner" class="hidden active-banner">
-                    <div>
-                        <span>📁 Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
-                    </div>
-                    <button type="button" onclick="resetFilters()" class="btn-exit-folder">
-                        Exit Folder ×
-                    </button>
+                <div id="imagePreviewBox" class="hidden" style="margin-top:10px;display:flex;align-items:center;gap:10px;background:#0f172a;padding:8px;border-radius:10px;">
+                    <img id="imagePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Preview" style="width:44px;height:44px;object-fit:cover;border-radius:6px;">
+                    <span id="imageName" style="font-size:12px;color:#cbd5e1;"></span>
+                    <button type="button" onclick="clearImage()" class="icon-btn" style="color:#fb7185;">×</button>
                 </div>
 
-                <!-- IMAGE PREVIEW -->
-                <div id="imagePreviewBox" class="hidden img-preview-box">
-                    <img id="imagePreview"
-                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                        alt="Selected Image Preview"
-                        class="img-preview-thumb">
-                    <div style="font-size:12px;color:#cbd5e1;">
-                        <p id="imageName" style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></p>
-                        <p style="color:#34d399;">AI will scan and extract text from this image</p>
+                <form onsubmit="handleSend(event)" class="chat-bar">
+                    <div class="input-box">
+                        <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event)">
+                        <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Photo" class="icon-btn">📎</button>
+                        <input type="text" id="userInput" autocomplete="off" placeholder="Type a note or click mic to speak...">
+                        <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak" class="icon-btn">🎤</button>
                     </div>
-                    <button type="button" onclick="clearImage()" aria-label="Remove Image"
-                        style="background:transparent;border:none;color:#94a3b8;font-size:18px;font-weight:700;cursor:pointer;padding:0 6px;">×</button>
-                </div>
-
-                <!-- INPUT BAR -->
-                <form id="memoryForm" onsubmit="handleSend(event)" class="chat-form">
-                    <div class="input-bar">
-                        <input type="file" id="imageInput" accept="image/*" aria-label="Attach Image" class="hidden" onchange="previewSelectedImage(event)">
-
-                        <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Receipt or Photo" class="icon-btn">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                            </svg>
-                        </button>
-
-                        <input type="text" id="userInput" autocomplete="off" aria-label="Memory Input"
-                            placeholder="Type a note or click the mic to speak..."
-                            class="chat-text-input">
-
-                        <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak to type" class="icon-btn">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <button type="submit" id="sendBtn" class="btn-send">
-                        <span id="sendBtnText">Save / Ask AI</span>
-                    </button>
+                    <button type="submit" id="sendBtn" class="send-btn"><span id="sendBtnText">Save / Ask AI</span></button>
                 </form>
             </section>
 
-            <!-- SEARCH & FILTER HEADER -->
-            <div class="timeline-bar">
-                <h3 id="timelineTitle" class="timeline-heading">All Memories (Date-Wise Timeline)</h3>
-                <div class="search-group">
-                    <input type="text" id="quickSearchInput" oninput="handleQuickSearch(this.value)"
-                        aria-label="Search Memories"
-                        placeholder="Search notes or receipts..."
-                        class="search-input">
-                    <button type="button" onclick="resetFilters()" class="btn-reset">Reset</button>
+            <div class="row-between" style="margin-bottom:14px;flex-wrap:wrap;">
+                <h3 id="timelineTitle" style="font-size:16px;">All Memories (Date-Wise Timeline)</h3>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="quickSearchInput" oninput="handleQuickSearch(this.value)" placeholder="Search notes..." class="inp" style="padding:6px 10px;font-size:12px;width:180px;">
+                    <button type="button" onclick="resetFilters()" class="btn-sm">Reset</button>
                 </div>
             </div>
 
-            <!-- TIMELINE FEED -->
-            <div id="timelineContainer" style="padding-bottom:48px;"></div>
+            <div id="timelineContainer"></div>
         </main>
     </div>
 
-    <!-- CREATE NEW FOLDER MODAL -->
-    <div id="folderModal" class="hidden modal-backdrop">
-        <div class="glass modal-card">
-            <div class="modal-header">
-                <h3 style="font-size:17px;font-weight:700;color:#fff;">Create New Folder</h3>
-                <button type="button" onclick="closeFolderModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;">×</button>
+    <!-- NEW FOLDER MODAL -->
+    <div id="folderModal" class="modal-bg hidden">
+        <div class="glass modal-box">
+            <div class="row-between" style="margin-bottom:14px;">
+                <h3 style="font-size:16px;">Create New Folder</h3>
+                <button type="button" onclick="closeFolderModal()" class="icon-btn">×</button>
             </div>
             <form onsubmit="handleCreateFolder(event)">
-                <label for="newFolderNameInput" class="form-label">Folder Name</label>
-                <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills" class="form-input">
-                <div class="modal-actions">
-                    <button type="button" onclick="closeFolderModal()" class="btn-cancel">Cancel</button>
-                    <button type="submit" id="createFolderSubmitBtn" class="btn-confirm">Create & Open</button>
+                <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills" class="inp">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+                    <button type="button" onclick="closeFolderModal()" class="btn-sm">Cancel</button>
+                    <button type="submit" id="createFolderSubmitBtn" class="btn-new" style="padding:8px 14px;">Create & Open</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- FULL IMAGE MODAL -->
-    <div id="imageModal" onclick="closeModal()" class="hidden modal-backdrop" style="cursor:pointer;">
-        <img id="modalImg"
-            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            alt="Full Size Memory Preview"
-            class="full-img">
+    <div id="imageModal" onclick="closeModal()" class="modal-bg hidden" style="cursor:pointer;">
+        <img id="modalImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Full Preview" style="max-height:90vh;max-width:95vw;border-radius:10px;">
     </div>
 
     <script>
@@ -937,35 +279,18 @@
         let voiceReplyEnabled = true;
         let searchTimer = null;
 
-        function escapeHtml(text) {
-            if (!text) return "";
-            return String(text)
-                .replace(/&/g, "&")
-                .replace(/</g, "<")
-                .replace(/>/g, ">")
-                .replace(/"/g, """)
-                .replace(/'/g, "'");
+        function esc(t) {
+            return String(t || "").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,""");
         }
 
         function switchAuthTab(mode) {
             authMode = mode;
-            const tabLogin = document.getElementById("tabLogin");
-            const tabRegister = document.getElementById("tabRegister");
-            const nameBox = document.getElementById("nameFieldBox");
-            const btn = document.getElementById("authSubmitBtn");
             document.getElementById("authError").classList.add("hidden");
-
-            if (mode === "register") {
-                tabRegister.classList.add("active");
-                tabLogin.classList.remove("active");
-                nameBox.classList.remove("hidden");
-                btn.innerText = "Create Private Vault";
-            } else {
-                tabLogin.classList.add("active");
-                tabRegister.classList.remove("active");
-                nameBox.classList.add("hidden");
-                btn.innerText = "Open Vault";
-            }
+            const isReg = mode === "register";
+            document.getElementById("tabRegister").classList.toggle("active", isReg);
+            document.getElementById("tabLogin").classList.toggle("active", !isReg);
+            document.getElementById("nameFieldBox").classList.toggle("hidden", !isReg);
+            document.getElementById("authSubmitBtn").innerText = isReg ? "Create Private Vault" : "Open Vault";
         }
 
         async function handleAuth(e) {
@@ -974,11 +299,13 @@
             const username = document.getElementById("authUsername").value;
             const password = document.getElementById("authPassword").value;
             const errBox = document.getElementById("authError");
+            const btn = document.getElementById("authSubmitBtn");
             errBox.classList.add("hidden");
+            btn.disabled = true;
+            btn.innerText = "Please wait...";
 
-            const endpoint = authMode === "register" ? "/api/register" : "/api/login";
             try {
-                const res = await fetch(endpoint, {
+                const res = await fetch(authMode === "register" ? "/api/register" : "/api/login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ full_name, username, password })
@@ -993,16 +320,17 @@
                 localStorage.setItem("smriti_token", authToken);
                 showAppScreen();
             } catch (err) {
-                errBox.innerText = "Unable to connect to the server.";
+                errBox.innerText = "Server is waking up. Please wait 30 seconds and click again.";
                 errBox.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = authMode === "register" ? "Create Private Vault" : "Open Vault";
             }
         }
 
         function logout() {
             localStorage.removeItem("smriti_token");
-            authToken = "";
-            activeFolderId = null;
-            activeFolderName = null;
+            authToken = ""; activeFolderId = null; activeFolderName = null;
             document.getElementById("appScreen").classList.add("hidden");
             document.getElementById("authScreen").classList.remove("hidden");
         }
@@ -1014,384 +342,185 @@
         }
 
         function openFolderModal() {
-            const modal = document.getElementById("folderModal");
-            const input = document.getElementById("newFolderNameInput");
-            input.value = "";
-            modal.classList.remove("hidden");
-            setTimeout(() => input.focus(), 50);
+            document.getElementById("newFolderNameInput").value = "";
+            document.getElementById("folderModal").classList.remove("hidden");
+            setTimeout(() => document.getElementById("newFolderNameInput").focus(), 50);
         }
 
-        function closeFolderModal() {
-            document.getElementById("folderModal").classList.add("hidden");
-        }
+        function closeFolderModal() { document.getElementById("folderModal").classList.add("hidden"); }
 
         async function handleCreateFolder(e) {
             e.preventDefault();
-            const input = document.getElementById("newFolderNameInput");
-            const btn = document.getElementById("createFolderSubmitBtn");
-            const name = input.value.trim();
+            const name = document.getElementById("newFolderNameInput").value.trim();
             if (!name) return;
-
-            btn.disabled = true;
-            btn.innerText = "Creating...";
-
-            try {
-                const res = await fetch("/api/folder", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ name })
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    alert(data.detail || "Could not create folder.");
-                    return;
-                }
+            const res = await fetch("/api/folder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${authToken}` },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            if (res.ok) {
                 closeFolderModal();
-                const folderObj = data.folder;
-                document.getElementById("aiSubReply").innerText = `Folder "${folderObj.name}" is open. Type a note or attach a photo below to save inside it.`;
-                await loadVaultData(folderObj.id, null, `${folderObj.name} Folder`, folderObj.name);
-                document.getElementById("userInput").focus();
-            } catch (err) {
-                alert("Error: Could not connect to the server.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Create & Open";
-            }
-        }
-
-        function updateActiveFolderUI() {
-            const banner = document.getElementById("activeFolderBanner");
-            const label = document.getElementById("activeFolderLabel");
-            const userInput = document.getElementById("userInput");
-            const sendBtnText = document.getElementById("sendBtnText");
-
-            if (activeFolderId && activeFolderName) {
-                label.innerText = activeFolderName;
-                banner.classList.remove("hidden");
-                userInput.placeholder = `Write a note or attach a photo inside "${activeFolderName}"...`;
-                sendBtnText.innerText = `Save in ${activeFolderName}`;
-            } else {
-                banner.classList.add("hidden");
-                userInput.placeholder = "Type a note or click the mic to speak...";
-                sendBtnText.innerText = "Save / Ask AI";
+                document.getElementById("aiSubReply").innerText = `Folder "${data.folder.name}" is open. Type a note below to save inside it.`;
+                await loadVaultData(data.folder.id, null, `${data.folder.name} Folder`, data.folder.name);
             }
         }
 
         function toggleVoiceReply() {
             voiceReplyEnabled = !voiceReplyEnabled;
-            const statusText = document.getElementById("voiceStatusText");
-            statusText.innerText = voiceReplyEnabled ? "ON" : "OFF";
-            statusText.style.color = voiceReplyEnabled ? "#34d399" : "#64748b";
+            const el = document.getElementById("voiceStatusText");
+            el.innerText = voiceReplyEnabled ? "ON" : "OFF";
+            el.style.color = voiceReplyEnabled ? "#34d399" : "#64748b";
         }
 
         function speakText(text) {
             if (!voiceReplyEnabled || !("speechSynthesis" in window)) return;
             window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = "en-IN";
-            utter.rate = 1.02;
-            window.speechSynthesis.speak(utter);
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = "en-IN";
+            window.speechSynthesis.speak(u);
         }
 
-        function selectFolderFromBtn(btn) {
-            const folderId = Number(btn.dataset.folderId);
-            const folderName = btn.dataset.folderName || "Folder";
-            loadVaultData(folderId, null, `${folderName} Folder`, folderName);
-            document.getElementById("userInput").focus();
-        }
-
-        async function deleteFolderFromBtn(btn) {
-            const folderId = Number(btn.dataset.folderId);
-            const folderName = btn.dataset.folderName || "this";
-            if (!confirm(`Are you sure you want to delete the "${folderName}" folder and all memories inside it?`)) return;
-
-            try {
-                const res = await fetch(`/api/folder/${folderId}`, {
-                    method: "DELETE",
-                    headers: { "Authorization": `Bearer ${authToken}` }
-                });
-                if (!res.ok) {
-                    alert("Could not delete the folder.");
-                    return;
-                }
-                if (activeFolderId === folderId) {
-                    activeFolderId = null;
-                    activeFolderName = null;
-                    loadVaultData(null, null, "All Memories (Date-Wise Timeline)", null);
-                } else {
-                    loadVaultData(activeFolderId, null, null, activeFolderName);
-                }
-            } catch (err) {
-                alert("Error: Could not connect to the server.");
-            }
+        async function deleteFolder(id, name) {
+            if (!confirm(`Delete "${name}" folder and all memories inside it?`)) return;
+            await fetch(`/api/folder/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${authToken}` } });
+            if (activeFolderId === id) { activeFolderId = null; activeFolderName = null; }
+            loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
         }
 
         async function loadVaultData(folderId = null, searchKw = null, customTitle = null, folderName = null) {
             activeFolderId = folderId;
-            if (folderId === null) {
-                activeFolderName = null;
-            } else if (folderName) {
-                activeFolderName = folderName;
+            activeFolderName = folderId === null ? null : (folderName || activeFolderName);
+
+            const banner = document.getElementById("activeFolderBanner");
+            if (activeFolderId && activeFolderName) {
+                document.getElementById("activeFolderLabel").innerText = activeFolderName;
+                banner.classList.remove("hidden");
+                document.getElementById("userInput").placeholder = `Write a note inside "${activeFolderName}"...`;
+                document.getElementById("sendBtnText").innerText = `Save in ${activeFolderName}`;
+            } else {
+                banner.classList.add("hidden");
+                document.getElementById("userInput").placeholder = "Type a note or click mic to speak...";
+                document.getElementById("sendBtnText").innerText = "Save / Ask AI";
             }
-            updateActiveFolderUI();
 
             let url = "/api/data?";
             if (folderId) url += `folder_id=${folderId}&`;
             if (searchKw) url += `search=${encodeURIComponent(searchKw)}&`;
 
-            const res = await fetch(url, {
-                headers: { "Authorization": `Bearer ${authToken}` }
-            });
-
-            if (res.status === 401) {
-                logout();
-                return;
-            }
-
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${authToken}` } });
+            if (res.status === 401) { logout(); return; }
             const data = await res.json();
+
             document.getElementById("userDisplayName").innerText = data.user.full_name;
             document.getElementById("aiGreeting").innerText = `Welcome, ${data.user.full_name}! What special memory would you like to save today?`;
+            document.getElementById("aiModeBadge").innerHTML = data.gemini_active
+                ? `<span class="dot" style="background:#34d399;"></span>Gemini 2.5 Vision AI Active`
+                : `<span class="dot" style="background:#fbbf24;"></span>Smart Local Mode Active`;
 
-            const badge = document.getElementById("aiModeBadge");
-            if (data.gemini_active) {
-                badge.innerHTML = `<span class="dot dot-green"></span><span>Gemini 2.5 Vision AI Active</span>`;
-            } else {
-                badge.innerHTML = `<span class="dot dot-amber"></span><span>Smart Local Mode Active</span>`;
-            }
-
-            const folderList = document.getElementById("folderList");
-            const totalCount = data.folders.reduce((acc, f) => acc + f.count, 0);
-            const allActive = !activeFolderId && !searchKw;
-            let foldersHtml = `
-                <div class="folder-row ${allActive ? 'active' : ''}">
-                    <button type="button" onclick="loadVaultData(null, null, 'All Memories (Date-Wise Timeline)', null)" class="folder-select-btn" style="padding-right:0;">
-                        <span>All Memories</span>
-                        <span class="count-pill">${totalCount}</span>
-                    </button>
-                </div>
-            `;
+            const total = data.folders.reduce((a, f) => a + f.count, 0);
+            let fHtml = `<div class="f-row ${!activeFolderId && !searchKw ? 'active' : ''}">
+                <button type="button" class="f-btn" onclick="loadVaultData(null,null,'All Memories (Date-Wise Timeline)',null)">
+                    <span>All Memories</span><span class="pill">${total}</span>
+                </button></div>`;
 
             data.folders.forEach(f => {
-                const isActive = activeFolderId === f.id;
-                foldersHtml += `
-                    <div class="folder-row ${isActive ? 'active' : ''}">
-                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="selectFolderFromBtn(this)" class="folder-select-btn">
-                            <span class="folder-name-wrap">
-                                <span style="color:#fbbf24;">📁</span> ${escapeHtml(f.name)}
-                            </span>
-                            <span class="count-pill">${f.count}</span>
-                        </button>
-                        <button type="button" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}" onclick="deleteFolderFromBtn(this)"
-                            title="Delete Folder" aria-label="Delete Folder" class="btn-del-folder">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    </div>
-                `;
+                fHtml += `<div class="f-row ${activeFolderId === f.id ? 'active' : ''}">
+                    <button type="button" class="f-btn" data-id="${f.id}" data-name="${esc(f.name)}"
+                        onclick="loadVaultData(Number(this.dataset.id),null,this.dataset.name+' Folder',this.dataset.name)">
+                        <span>📁 ${esc(f.name)}</span><span class="pill">${f.count}</span>
+                    </button>
+                    <button type="button" class="del-f" data-id="${f.id}" data-name="${esc(f.name)}"
+                        onclick="deleteFolder(Number(this.dataset.id),this.dataset.name)" title="Delete Folder">🗑</button>
+                </div>`;
             });
-            folderList.innerHTML = foldersHtml;
+            document.getElementById("folderList").innerHTML = fHtml;
+            document.getElementById("timelineTitle").innerText = customTitle || (activeFolderName ? `${activeFolderName} Folder` : "All Memories (Date-Wise Timeline)");
 
-            if (customTitle) {
-                document.getElementById("timelineTitle").innerText = customTitle;
-            } else if (!folderId && !searchKw) {
-                document.getElementById("timelineTitle").innerText = "All Memories (Date-Wise Timeline)";
-            }
-
-            renderTimeline(data.memories);
-        }
-
-        function renderTimeline(memories) {
             const container = document.getElementById("timelineContainer");
-            if (!memories.length) {
-                const emptyHint = activeFolderName
-                    ? `Type a note or upload a photo in the box above to save it inside "${escapeHtml(activeFolderName)}"!`
-                    : `Click "+ New" on the left to create a folder, or type/speak above to save your first memory!`;
-                container.innerHTML = `
-                    <div class="glass empty-box">
-                        <p style="font-size:16px;font-weight:600;color:#e2e8f0;">No memories saved here yet.</p>
-                        <p style="font-size:12px;margin-top:6px;">${emptyHint}</p>
-                    </div>
-                `;
+            if (!data.memories.length) {
+                container.innerHTML = `<div class="glass card" style="text-align:center;color:#94a3b8;padding:36px;">No memories saved here yet.</div>`;
                 return;
             }
-
             const grouped = {};
-            memories.forEach(m => {
-                if (!grouped[m.date_badge]) grouped[m.date_badge] = [];
-                grouped[m.date_badge].push(m);
-            });
-
-            let html = "";
-            for (const [dateLabel, items] of Object.entries(grouped)) {
-                const isToday = dateLabel === "Today";
-                html += `
-                    <div class="date-section">
-                        <div class="date-divider">
-                            <span class="date-pill ${isToday ? 'today' : ''}">${escapeHtml(dateLabel)}</span>
-                            <div class="divider-line"></div>
+            data.memories.forEach(m => { (grouped[m.date_badge] = grouped[m.date_badge] || []).push(m); });
+            let mHtml = "";
+            for (const [badge, items] of Object.entries(grouped)) {
+                mHtml += `<div style="margin-bottom:20px;"><span class="pill" style="background:#1e293b;color:#6ee7b7;font-weight:700;">${esc(badge)}</span><div class="grid">`;
+                items.forEach(it => {
+                    mHtml += `<div class="glass mem-card">
+                        <div class="row-between" style="margin-bottom:8px;">
+                            <span class="tag">📁 ${esc(it.folder_name)}</span>
+                            <span style="font-size:11px;color:#94a3b8;">${esc(it.time_only)}
+                                <button type="button" onclick="deleteMemory(${it.id})" style="background:none;border:none;color:#fb7185;cursor:pointer;margin-left:6px;font-weight:700;">×</button>
+                            </span>
                         </div>
-                        <div class="cards-grid">
-                `;
-
-                items.forEach(item => {
-                    html += `
-                        <div class="glass memory-card">
-                            <div>
-                                <div class="card-top">
-                                    <span class="folder-tag">📁 ${escapeHtml(item.folder_name)}</span>
-                                    <div class="card-meta">
-                                        <span>${escapeHtml(item.time_only)}</span>
-                                        <button type="button" onclick="deleteMemory(${item.id})" title="Delete" class="btn-del-mem">×</button>
-                                    </div>
-                                </div>
-                                <p class="card-text">${escapeHtml(item.content)}</p>
-                                ${item.ocr_text ? `
-                                    <div class="ocr-box">
-                                        <strong style="color:#22d3ee;">AI Image Scan:</strong> ${escapeHtml(item.ocr_text)}
-                                    </div>
-                                ` : ''}
-                                ${item.image_path ? `
-                                    <img src="${escapeHtml(item.image_path)}"
-                                        data-full-src="${escapeHtml(item.image_path)}"
-                                        onclick="openModal(this.dataset.fullSrc)"
-                                        class="memory-img"
-                                        alt="Saved Document">
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
+                        <p style="font-size:14px;line-height:1.5;">${esc(it.content)}</p>
+                        ${it.ocr_text ? `<div style="margin-top:8px;padding:7px;background:#020617;border-radius:6px;font-size:12px;color:#67e8f9;"><strong>AI Scan:</strong> ${esc(it.ocr_text)}</div>` : ''}
+                        ${it.image_path ? `<img src="${esc(it.image_path)}" onclick="openModal(this.src)" style="margin-top:10px;width:100%;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;">` : ''}
+                    </div>`;
                 });
-
-                html += `</div></div>`;
+                mHtml += `</div></div>`;
             }
-            container.innerHTML = html;
+            container.innerHTML = mHtml;
         }
 
         async function handleSend(e) {
             e.preventDefault();
-            const input = document.getElementById("userInput");
-            const fileInput = document.getElementById("imageInput");
-            const sendBtn = document.getElementById("sendBtn");
+            const inp = document.getElementById("userInput");
+            const file = document.getElementById("imageInput");
+            if (!inp.value.trim() && !file.files.length) return;
 
-            if (!input.value.trim() && !fileInput.files.length) return;
+            const fd = new FormData();
+            fd.append("message", inp.value);
+            if (activeFolderId) fd.append("target_folder_id", String(activeFolderId));
+            if (file.files.length) fd.append("image", file.files[0]);
 
-            const formData = new FormData();
-            formData.append("message", input.value);
-            if (activeFolderId) {
-                formData.append("target_folder_id", String(activeFolderId));
-            }
-            if (fileInput.files.length > 0) {
-                formData.append("image", fileInput.files[0]);
-            }
-
-            sendBtn.disabled = true;
-            sendBtn.innerText = "Processing...";
-
+            const btn = document.getElementById("sendBtn");
+            btn.disabled = true;
             try {
-                const res = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${authToken}` },
-                    body: formData
-                });
+                const res = await fetch("/api/chat", { method: "POST", headers: { "Authorization": `Bearer ${authToken}` }, body: fd });
                 const data = await res.json();
-
                 document.getElementById("aiSubReply").innerText = data.ai_reply;
                 speakText(data.ai_reply);
-                input.value = "";
-                clearImage();
-
-                if (data.status === "search") {
-                    loadVaultData(null, data.search_keyword, `Search Results: "${data.search_keyword}"`, null);
-                } else if (data.status === "folder_created" && data.folder_id) {
-                    loadVaultData(data.folder_id, null, `${data.folder_name} Folder`, data.folder_name);
-                } else if (activeFolderId) {
-                    loadVaultData(activeFolderId, null, `${activeFolderName} Folder`, activeFolderName);
-                } else {
-                    loadVaultData();
-                }
-            } catch (err) {
-                alert("Error: Could not connect to the server.");
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = `<span id="sendBtnText">${activeFolderName ? 'Save in ' + escapeHtml(activeFolderName) : 'Save / Ask AI'}</span>`;
-            }
+                inp.value = ""; clearImage();
+                if (data.status === "search") loadVaultData(null, data.search_keyword, `Search: "${data.search_keyword}"`, null);
+                else if (data.status === "folder_created") loadVaultData(data.folder_id, null, `${data.folder_name} Folder`, data.folder_name);
+                else loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
+            } finally { btn.disabled = false; }
         }
 
-        function handleQuickSearch(val) {
+        function handleQuickSearch(v) {
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(() => {
-                if (!val.trim()) {
-                    loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
-                    return;
-                }
-                loadVaultData(null, val.trim(), `Search: "${val.trim()}"`, null);
-            }, 250);
+            searchTimer = setTimeout(() => v.trim() ? loadVaultData(null, v.trim(), `Search: "${v.trim()}"`, null) : loadVaultData(activeFolderId), 250);
         }
-
-        function resetFilters() {
-            document.getElementById("quickSearchInput").value = "";
-            loadVaultData(null, null, "All Memories (Date-Wise Timeline)", null);
-        }
-
-        function previewSelectedImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            document.getElementById("imagePreview").src = URL.createObjectURL(file);
-            document.getElementById("imageName").innerText = file.name;
+        function resetFilters() { document.getElementById("quickSearchInput").value = ""; loadVaultData(null, null, "All Memories (Date-Wise Timeline)", null); }
+        function previewSelectedImage(e) {
+            const f = e.target.files[0]; if (!f) return;
+            document.getElementById("imagePreview").src = URL.createObjectURL(f);
+            document.getElementById("imageName").innerText = f.name;
             document.getElementById("imagePreviewBox").classList.remove("hidden");
         }
-
         function clearImage() {
             document.getElementById("imageInput").value = "";
             document.getElementById("imagePreview").src = BLANK_IMG;
             document.getElementById("imagePreviewBox").classList.add("hidden");
         }
-
         async function deleteMemory(id) {
-            if (!confirm("Are you sure you want to delete this memory?")) return;
-            await fetch(`/api/memory/${id}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${authToken}` }
-            });
-            loadVaultData(activeFolderId, null, activeFolderName ? `${activeFolderName} Folder` : null, activeFolderName);
+            if (!confirm("Delete this memory?")) return;
+            await fetch(`/api/memory/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${authToken}` } });
+            loadVaultData(activeFolderId);
         }
-
-        function openModal(src) {
-            if (!src) return;
-            document.getElementById("modalImg").src = src;
-            document.getElementById("imageModal").classList.remove("hidden");
-        }
-
-        function closeModal() {
-            document.getElementById("imageModal").classList.add("hidden");
-            document.getElementById("modalImg").src = BLANK_IMG;
-        }
-
+        function openModal(src) { document.getElementById("modalImg").src = src; document.getElementById("imageModal").classList.remove("hidden"); }
+        function closeModal() { document.getElementById("imageModal").classList.add("hidden"); document.getElementById("modalImg").src = BLANK_IMG; }
         function startVoiceInput() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Please use Google Chrome or Microsoft Edge for voice typing.");
-                return;
-            }
-            const recognition = new SpeechRecognition();
-            recognition.lang = "en-IN";
-            const micBtn = document.getElementById("micBtn");
-
-            recognition.onstart = () => micBtn.classList.add("pulse-mic");
-            recognition.onend = () => micBtn.classList.remove("pulse-mic");
-            recognition.onresult = (event) => {
-                document.getElementById("userInput").value = event.results[0][0].transcript;
-            };
-            recognition.start();
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { alert("Use Chrome or Edge for voice input."); return; }
+            const r = new SR(); r.lang = "en-IN";
+            r.onresult = (e) => { document.getElementById("userInput").value = e.results[0][0].transcript; };
+            r.start();
         }
-
-        if (authToken) {
-            showAppScreen();
-        }
+        if (authToken) showAppScreen();
     </script>
 </body>
 </html>
