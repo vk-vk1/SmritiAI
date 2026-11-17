@@ -22,7 +22,7 @@ except ImportError:
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
-app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v2.5")
+app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v2.6")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -190,7 +190,7 @@ def smart_ai_processor(user_text: str, image_bytes: Optional[bytes], mime_type: 
             client = genai.Client(api_key=GEMINI_API_KEY)
             active_ctx = f'User has folder "{active_folder_name}" open. Store new memories inside "{active_folder_name}".' if active_folder_name else "Auto-select or create the best matching folder."
             prompt = f"""
-            You are 'SmritiAI', an intelligent personal & family memory vault assistant.
+            You are 'SmritiAI', an intelligent personal and family memory vault assistant.
             You naturally understand English, Hindi, and Hinglish (e.g., "ak Vishnu ka folder bnao", "kal tractor ke 1500 diye likh do", "Vishnu folder me kya hai?").
             User message: "{user_text}" | Image attached: {has_image} | Existing folders: {existing_folders} | {active_ctx}
             Choose ONE intent:
@@ -231,14 +231,14 @@ def smart_ai_processor(user_text: str, image_bytes: Optional[bytes], mime_type: 
     return {"intent": "SAVE", "folder_name": folder_name, "clean_data": user_text.strip() or "Saved image document", "ocr_text": "", "search_keyword": "", "ai_reply": f"Done! Stored safely in '{folder_name}'."}
 
 
-HTML_PAGE = r"""<!DOCTYPE html>
+HTML_PAGE = r'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SmritiAI — Smart Memory Vault</title>
+<title>SmritiAI - Smart Memory Vault</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8fafc;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
 .hidden{display:none!important}
 .glass{background:rgba(30,41,59,.78);backdrop-filter:blur(14px);border:1px solid rgba(148,163,184,.22)}
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -266,14 +266,14 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
 .f-btn{flex:1;display:flex;align-items:center;justify-content:space-between;background:transparent;border:none;color:#e2e8f0;font-size:14px;cursor:pointer;text-align:left;padding-right:8px;overflow:hidden}
 .f-row.active .f-btn{color:#67e8f9;font-weight:600}
 .pill{font-size:11px;background:#1e293b;color:#cbd5e1;padding:2px 8px;border-radius:99px}
-.del-f{background:transparent;border:none;color:#64748b;cursor:pointer;font-size:14px;padding:2px 6px}.del-f:hover{color:#fb7185}
+.del-f{background:transparent;border:none;color:#64748b;cursor:pointer;font-size:12px;padding:2px 6px}.del-f:hover{color:#fb7185}
 .main{flex:1;max-width:960px;width:100%;margin:0 auto;padding:20px}
 .card{border-radius:18px;padding:20px;margin-bottom:22px}
 .banner{display:flex;align-items:center;justify-content:space-between;background:rgba(30,27,75,.9);border:1px solid #22d3ee;padding:8px 12px;border-radius:10px;font-size:12px;color:#a5f3fc;margin:12px 0}
 .chat-bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .input-box{flex:1;min-width:240px;display:flex;align-items:center;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:4px 8px}
 .input-box input{flex:1;background:transparent;border:none;color:#fff;font-size:14px;padding:8px;outline:none}
-.icon-btn{background:transparent;border:none;color:#94a3b8;font-size:16px;padding:6px 8px;cursor:pointer}.icon-btn:hover{color:#22d3ee}
+.icon-btn{background:transparent;border:none;color:#94a3b8;font-size:13px;font-weight:600;padding:6px 8px;cursor:pointer}.icon-btn:hover{color:#22d3ee}
 .send-btn{background:linear-gradient(90deg,#4f46e5,#06b6d4);color:#fff;font-weight:600;border:none;border-radius:10px;padding:11px 20px;cursor:pointer}
 .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}@media(min-width:768px){.grid{grid-template-columns:1fr 1fr}}
 .mem-card{border-radius:14px;padding:15px}
@@ -288,11 +288,11 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
   <div class="glass auth-box">
     <div class="brand">
       <div class="logo">S</div>
-      <div><h1 style="font-size:22px;">Smriti<span style="color:#22d3ee;">AI</span> <span style="font-size:11px;color:#34d399;">v2.5</span></h1><p style="font-size:12px;color:#94a3b8;">Personal & Family Memory Vault</p></div>
+      <div><h1 style="font-size:22px;">Smriti<span style="color:#22d3ee;">AI</span> <span style="font-size:11px;color:#34d399;">v2.6</span></h1><p style="font-size:12px;color:#94a3b8;">Personal and Family Memory Vault</p></div>
     </div>
     <div class="tabs">
-      <button type="button" id="tabLogin" class="tab active" onclick="switchAuthTab('login')">Login</button>
-      <button type="button" id="tabRegister" class="tab" onclick="switchAuthTab('register')">Create Account</button>
+      <button type="button" id="tabLogin" class="tab active" onclick="setLoginMode()">Login</button>
+      <button type="button" id="tabRegister" class="tab" onclick="setRegisterMode()">Create Account</button>
     </div>
     <form onsubmit="handleAuth(event)">
       <div id="nameFieldBox" class="field hidden"><label for="authName">Full Name</label><input type="text" id="authName" placeholder="Enter full name" class="inp"></div>
@@ -333,20 +333,20 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
       <h2 id="aiGreeting" style="font-size:18px;">Welcome! What special memory would you like to save today?</h2>
       <p id="aiSubReply" style="font-size:13px;color:#67e8f9;margin-top:4px;">Click any folder on the left to write inside it, or type/speak naturally below.</p>
       <div id="activeFolderBanner" class="banner hidden">
-        <span>📁 Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
-        <button type="button" onclick="resetFilters()" class="btn-sm" style="padding:3px 8px;">Exit Folder ×</button>
+        <span>Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
+        <button type="button" onclick="resetFilters()" class="btn-sm" style="padding:3px 8px;">Exit Folder</button>
       </div>
       <div id="imagePreviewBox" class="hidden" style="margin-top:10px;display:flex;align-items:center;gap:10px;background:#0f172a;padding:8px;border-radius:10px;">
         <img id="imagePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Preview" style="width:44px;height:44px;object-fit:cover;border-radius:6px;">
         <span id="imageName" style="font-size:12px;color:#cbd5e1;"></span>
-        <button type="button" onclick="clearImage()" class="icon-btn" style="color:#fb7185;">×</button>
+        <button type="button" onclick="clearImage()" class="icon-btn" style="color:#fb7185;">Remove</button>
       </div>
       <form onsubmit="handleSend(event)" class="chat-bar">
         <div class="input-box">
           <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event)">
-          <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Photo" class="icon-btn">📎</button>
+          <button type="button" onclick="document.getElementById('imageInput').click()" title="Attach Photo" class="icon-btn">Photo</button>
           <input type="text" id="userInput" autocomplete="off" placeholder="Type a note or click mic to speak...">
-          <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak" class="icon-btn">🎤</button>
+          <button type="button" id="micBtn" onclick="startVoiceInput()" title="Speak" class="icon-btn">Mic</button>
         </div>
         <button type="submit" id="sendBtn" class="send-btn"><span id="sendBtnText">Save / Ask AI</span></button>
       </form>
@@ -364,12 +364,12 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
 
 <div id="folderModal" class="modal-bg hidden">
   <div class="glass modal-box">
-    <div class="row-between" style="margin-bottom:14px;"><h3 style="font-size:16px;">Create New Folder</h3><button type="button" onclick="closeFolderModal()" class="icon-btn">×</button></div>
+    <div class="row-between" style="margin-bottom:14px;"><h3 style="font-size:16px;">Create New Folder</h3><button type="button" onclick="closeFolderModal()" class="icon-btn">X</button></div>
     <form onsubmit="handleCreateFolder(event)">
       <input type="text" id="newFolderNameInput" required placeholder="e.g., Vishnu, Medical, Bills" class="inp">
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
         <button type="button" onclick="closeFolderModal()" class="btn-sm">Cancel</button>
-        <button type="submit" class="btn-new" style="padding:8px 14px;">Create & Open</button>
+        <button type="submit" class="btn-new" style="padding:8px 14px;">Create and Open</button>
       </div>
     </form>
   </div>
@@ -382,14 +382,16 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
 <script>
 var BLANK_IMG="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 var authMode="login",authToken=localStorage.getItem("smriti_token")||"",activeFolderId=null,activeFolderName=null,voiceReplyEnabled=true,searchTimer=null;
-function esc(t){return String(t||"").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,""");}
-function switchAuthTab(m){
-  authMode=m;document.getElementById("authError").className="err hidden";
-  var r=(m==="register");
-  document.getElementById("tabRegister").className=r?"tab active":"tab";
-  document.getElementById("tabLogin").className=r?"tab":"tab active";
-  document.getElementById("nameFieldBox").className=r?"field":"field hidden";
-  document.getElementById("authSubmitBtn").innerText=r?"Create Private Vault":"Open Vault";
+function esc(t){var d=document.createElement("div");d.textContent=t||"";return d.innerHTML;}
+function setLoginMode(){
+  authMode="login";document.getElementById("authError").className="err hidden";
+  document.getElementById("tabLogin").className="tab active";document.getElementById("tabRegister").className="tab";
+  document.getElementById("nameFieldBox").className="field hidden";document.getElementById("authSubmitBtn").innerText="Open Vault";
+}
+function setRegisterMode(){
+  authMode="register";document.getElementById("authError").className="err hidden";
+  document.getElementById("tabRegister").className="tab active";document.getElementById("tabLogin").className="tab";
+  document.getElementById("nameFieldBox").className="field";document.getElementById("authSubmitBtn").innerText="Create Private Vault";
 }
 async function handleAuth(e){
   e.preventDefault();
@@ -412,23 +414,26 @@ async function handleCreateFolder(e){
   e.preventDefault();var name=document.getElementById("newFolderNameInput").value.trim();if(!name)return;
   var res=await fetch("/api/folder",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+authToken},body:JSON.stringify({name:name})});
   var data=await res.json();
-  if(res.ok){closeFolderModal();document.getElementById("aiSubReply").innerText="Folder '"+data.folder.name+"' is open. Type a note below.";await loadVaultData(data.folder.id,null,data.folder.name+" Folder",data.folder.name);}
+  if(res.ok){closeFolderModal();document.getElementById("aiSubReply").innerText="Folder "+data.folder.name+" is open. Type a note below.";await loadVaultData(data.folder.id,null,data.folder.name+" Folder",data.folder.name);}
 }
 function toggleVoiceReply(){voiceReplyEnabled=!voiceReplyEnabled;var el=document.getElementById("voiceStatusText");el.innerText=voiceReplyEnabled?"ON":"OFF";el.style.color=voiceReplyEnabled?"#34d399":"#64748b";}
 function speakText(t){if(!voiceReplyEnabled||!("speechSynthesis"in window))return;window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang="en-IN";window.speechSynthesis.speak(u);}
-async function deleteFolder(id,name){
-  if(!confirm("Delete '"+name+"' folder?"))return;
+function openFolderBtn(btn){loadVaultData(Number(btn.dataset.id),null,btn.dataset.name+" Folder",btn.dataset.name);}
+async function delFolderBtn(btn){
+  var id=Number(btn.dataset.id),name=btn.dataset.name;
+  if(!confirm("Delete "+name+" folder?"))return;
   await fetch("/api/folder/"+id,{method:"DELETE",headers:{"Authorization":"Bearer "+authToken}});
   if(activeFolderId===id){activeFolderId=null;activeFolderName=null;}
   loadVaultData(activeFolderId,null,activeFolderName?activeFolderName+" Folder":null,activeFolderName);
 }
+function loadAllMemories(){loadVaultData(null,null,"All Memories (Date-Wise Timeline)",null);}
 async function loadVaultData(fId,sKw,cTitle,fName){
   if(fId===undefined)fId=null;if(sKw===undefined)sKw=null;if(cTitle===undefined)cTitle=null;if(fName===undefined)fName=null;
   activeFolderId=fId;activeFolderName=fId===null?null:(fName||activeFolderName);
   var banner=document.getElementById("activeFolderBanner");
   if(activeFolderId&&activeFolderName){
     document.getElementById("activeFolderLabel").innerText=activeFolderName;banner.className="banner";
-    document.getElementById("userInput").placeholder="Write inside '"+activeFolderName+"'...";
+    document.getElementById("userInput").placeholder="Write inside "+activeFolderName+"...";
     document.getElementById("sendBtnText").innerText="Save in "+activeFolderName;
   }else{
     banner.className="banner hidden";document.getElementById("userInput").placeholder="Type a note or click mic to speak...";
@@ -442,9 +447,9 @@ async function loadVaultData(fId,sKw,cTitle,fName){
   document.getElementById("aiGreeting").innerText="Welcome, "+data.user.full_name+"! What memory would you like to save?";
   document.getElementById("aiModeBadge").innerHTML=data.gemini_active?'<span class="dot" style="background:#34d399;"></span>Gemini 2.5 Vision AI Active':'<span class="dot" style="background:#fbbf24;"></span>Smart Local Mode Active';
   var total=data.folders.reduce(function(a,f){return a+f.count;},0);
-  var fHtml='<div class="f-row '+(!activeFolderId&&!sKw?'active':'')+'"><button type="button" class="f-btn" onclick="loadVaultData(null,null,\'All Memories (Date-Wise Timeline)\',null)"><span>All Memories</span><span class="pill">'+total+'</span></button></div>';
+  var fHtml='<div class="f-row '+(!activeFolderId&&!sKw?"active":"")+'"><button type="button" class="f-btn" onclick="loadAllMemories()"><span>All Memories</span><span class="pill">'+total+'</span></button></div>';
   data.folders.forEach(function(f){
-    fHtml+='<div class="f-row '+(activeFolderId===f.id?'active':'')+'"><button type="button" class="f-btn" data-id="'+f.id+'" data-name="'+esc(f.name)+'" onclick="loadVaultData(Number(this.dataset.id),null,this.dataset.name+\' Folder\',this.dataset.name)"><span>📁 '+esc(f.name)+'</span><span class="pill">'+f.count+'</span></button><button type="button" class="del-f" data-id="'+f.id+'" data-name="'+esc(f.name)+'" onclick="deleteFolder(Number(this.dataset.id),this.dataset.name)">🗑</button></div>';
+    fHtml+='<div class="f-row '+(activeFolderId===f.id?"active":"")+'"><button type="button" class="f-btn" data-id="'+f.id+'" data-name="'+esc(f.name)+'" onclick="openFolderBtn(this)"><span>[Folder] '+esc(f.name)+'</span><span class="pill">'+f.count+'</span></button><button type="button" class="del-f" data-id="'+f.id+'" data-name="'+esc(f.name)+'" onclick="delFolderBtn(this)" title="Delete Folder">Del</button></div>';
   });
   document.getElementById("folderList").innerHTML=fHtml;
   document.getElementById("timelineTitle").innerText=cTitle||(activeFolderName?activeFolderName+" Folder":"All Memories (Date-Wise Timeline)");
@@ -455,7 +460,7 @@ async function loadVaultData(fId,sKw,cTitle,fName){
   Object.keys(grp).forEach(function(b){
     mHtml+='<div style="margin-bottom:20px;"><span class="pill" style="background:#1e293b;color:#6ee7b7;font-weight:700;">'+esc(b)+'</span><div class="grid">';
     grp[b].forEach(function(it){
-      mHtml+='<div class="glass mem-card"><div class="row-between" style="margin-bottom:8px;"><span class="tag">📁 '+esc(it.folder_name)+'</span><span style="font-size:11px;color:#94a3b8;">'+esc(it.time_only)+'<button type="button" onclick="deleteMemory('+it.id+')" style="background:none;border:none;color:#fb7185;cursor:pointer;margin-left:6px;font-weight:700;">×</button></span></div><p style="font-size:14px;line-height:1.5;">'+esc(it.content)+'</p>'+(it.ocr_text?'<div style="margin-top:8px;padding:7px;background:#020617;border-radius:6px;font-size:12px;color:#67e8f9;"><strong>AI Scan:</strong> '+esc(it.ocr_text)+'</div>':'')+(it.image_path?'<img src="'+esc(it.image_path)+'" onclick="openModal(this.src)" style="margin-top:10px;width:100%;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;">':'')+'</div>';
+      mHtml+='<div class="glass mem-card"><div class="row-between" style="margin-bottom:8px;"><span class="tag">'+esc(it.folder_name)+'</span><span style="font-size:11px;color:#94a3b8;">'+esc(it.time_only)+'<button type="button" onclick="deleteMemory('+it.id+')" style="background:none;border:none;color:#fb7185;cursor:pointer;margin-left:8px;font-weight:700;">X</button></span></div><p style="font-size:14px;line-height:1.5;">'+esc(it.content)+'</p>'+(it.ocr_text?'<div style="margin-top:8px;padding:7px;background:#020617;border-radius:6px;font-size:12px;color:#67e8f9;"><strong>AI Scan:</strong> '+esc(it.ocr_text)+'</div>':'')+(it.image_path?'<img src="'+esc(it.image_path)+'" onclick="openModal(this.src)" style="margin-top:10px;width:100%;height:150px;object-fit:cover;border-radius:8px;cursor:pointer;">':'')+'</div>';
     });
     mHtml+='</div></div>';
   });
@@ -472,13 +477,13 @@ async function handleSend(e){
     var res=await fetch("/api/chat",{method:"POST",headers:{"Authorization":"Bearer "+authToken},body:fd});
     var data=await res.json();document.getElementById("aiSubReply").innerText=data.ai_reply;speakText(data.ai_reply);
     inp.value="";clearImage();
-    if(data.status==="search")loadVaultData(null,data.search_keyword,"Search: '"+data.search_keyword+"'",null);
+    if(data.status==="search")loadVaultData(null,data.search_keyword,"Search: "+data.search_keyword,null);
     else if(data.status==="folder_created")loadVaultData(data.folder_id,null,data.folder_name+" Folder",data.folder_name);
     else loadVaultData(activeFolderId,null,activeFolderName?activeFolderName+" Folder":null,activeFolderName);
   }finally{btn.disabled=false;}
 }
-function handleQuickSearch(v){clearTimeout(searchTimer);searchTimer=setTimeout(function(){v.trim()?loadVaultData(null,v.trim(),"Search: '"+v.trim()+"'",null):loadVaultData(activeFolderId);},250);}
-function resetFilters(){document.getElementById("quickSearchInput").value="";loadVaultData(null,null,"All Memories (Date-Wise Timeline)",null);}
+function handleQuickSearch(v){clearTimeout(searchTimer);searchTimer=setTimeout(function(){v.trim()?loadVaultData(null,v.trim(),"Search: "+v.trim(),null):loadVaultData(activeFolderId);},250);}
+function resetFilters(){document.getElementById("quickSearchInput").value="";loadAllMemories();}
 function previewSelectedImage(e){var f=e.target.files[0];if(!f)return;document.getElementById("imagePreview").src=URL.createObjectURL(f);document.getElementById("imageName").innerText=f.name;document.getElementById("imagePreviewBox").style.display="flex";}
 function clearImage(){document.getElementById("imageInput").value="";document.getElementById("imagePreview").src=BLANK_IMG;document.getElementById("imagePreviewBox").style.display="none";}
 async function deleteMemory(id){if(!confirm("Delete this memory?"))return;await fetch("/api/memory/"+id,{method:"DELETE",headers:{"Authorization":"Bearer "+authToken}});loadVaultData(activeFolderId);}
@@ -489,7 +494,7 @@ if(authToken)showAppScreen();
 </script>
 </body>
 </html>
-"""
+'''
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -502,7 +507,7 @@ def register_user(payload: AuthPayload):
     username = payload.username.strip().lower()
     full_name = (payload.full_name or username).strip()
     if len(username) < 3 or len(payload.password) < 4:
-        raise HTTPException(status_code=400, detail="Username min 3 chars & password min 4 chars.")
+        raise HTTPException(status_code=400, detail="Username min 3 chars and password min 4 chars.")
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
