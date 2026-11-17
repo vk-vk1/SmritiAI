@@ -21,11 +21,11 @@ except ImportError:
     GEMINI_AVAILABLE = False
 
 # ==========================================================
-# CONFIGURATION: Paste your Gemini API Key below
+# CONFIGURATION: Reads GEMINI_API_KEY from Render Environment
 # ==========================================================
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
-app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v2.1")
+app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v2.3")
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("static", exist_ok=True)
@@ -34,6 +34,15 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 DB_NAME = "smriti_vault.db"
+
+STOP_WORDS = {
+    "a", "an", "the", "my", "this", "that", "new", "folder", "folders",
+    "create", "make", "add", "open", "save", "store", "put", "keep",
+    "in", "into", "inside", "to", "for", "of", "named", "called", "with",
+    "ek", "ak", "ik", "ka", "ki", "ke", "ko", "me", "mein", "se", "par",
+    "wale", "wali", "naam", "name", "naya", "nayi", "naye", "bnao", "banao",
+    "banado", "bana", "do", "de", "dijiye", "rakh", "rakho", "daal", "dal", "likh", "likho"
+}
 
 
 def get_db():
@@ -150,6 +159,10 @@ class AuthPayload(BaseModel):
     password: str
 
 
+class FolderCreatePayload(BaseModel):
+    name: str
+
+
 def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Login required")
@@ -186,7 +199,7 @@ def get_date_badge(dt_str: str) -> str:
 
 def get_or_create_folder(conn, user_id: int, folder_name: str) -> int:
     clean_name = folder_name.strip().title()
-    if not clean_name:
+    if not clean_name or clean_name.lower() in STOP_WORDS:
         clean_name = "General"
     cursor = conn.cursor()
     cursor.execute(
@@ -205,48 +218,86 @@ def get_or_create_folder(conn, user_id: int, folder_name: str) -> int:
     return cursor.lastrowid
 
 
+def extract_folder_name_smart(user_text: str, existing_folders: list, default_name: str = "General") -> str:
+    text_lower = user_text.lower()
+
+    for f in existing_folders:
+        if re.search(rf"\b{re.escape(f.lower())}\b", text_lower):
+            return f
+
+    m1 = re.search(r"\b([a-zA-Z0-9_-]+)\s+(?:naam\s+)?(?:ka|ki|ke|wale|wali)\s+folder\b", text_lower)
+    if m1 and m1.group(1) not in STOP_WORDS:
+        return m1.group(1).title()
+
+    m2 = re.search(r"\bfolder\s+(?:named|called|for|of)\s+([a-zA-Z0-9_-]+)\b", text_lower)
+    if m2 and m2.group(1) not in STOP_WORDS:
+        return m2.group(1).title()
+
+    m3 = re.search(r"\b([a-zA-Z0-9_-]+)\s+folder\b", text_lower)
+    if m3 and m3.group(1) not in STOP_WORDS:
+        return m3.group(1).title()
+
+    m4 = re.search(r"\bfolder\s+([a-zA-Z0-9_-]+)\b", text_lower)
+    if m4 and m4.group(1) not in STOP_WORDS:
+        return m4.group(1).title()
+
+    return default_name
+
+
 def smart_ai_processor(
     user_text: str,
     image_bytes: Optional[bytes],
     mime_type: Optional[str],
     existing_folders: list,
+    active_folder_name: Optional[str] = None,
 ):
     has_image = image_bytes is not None
     use_gemini = (
         GEMINI_AVAILABLE
-        and GEMINI_API_KEY
+        and bool(GEMINI_API_KEY)
         and GEMINI_API_KEY != "APNI_GEMINI_API_KEY_YAHAN_DALEIN"
     )
 
     if use_gemini:
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
+            active_folder_ctx = (
+                f'The user currently has the folder "{active_folder_name}" open. If the user is saving a note or image, store it inside "{active_folder_name}".'
+                if active_folder_name
+                else "No specific folder is currently open; auto-select or create the best matching folder."
+            )
             prompt = f"""
-            You are 'SmritiAI', a smart personal and family memory vault assistant.
+            You are 'SmritiAI', an intelligent, human-like personal & family memory vault assistant.
+            You naturally understand conversational English, Hindi, and Hinglish (e.g., "ak Vishnu ka folder bnao", "kal tractor ke 1500 diye likh do", "Vishnu folder me kya hai?").
+
             User message: "{user_text}"
-            Did the user attach an image?: {has_image}
+            Image attached?: {has_image}
             User's existing folders: {existing_folders}
+            Active folder context: {active_folder_ctx}
 
-            Instructions:
-            1. Determine whether the user wants to STORE new data/image ('SAVE') or RETRIEVE/QUERY existing data ('SEARCH').
-               (If an image is attached, the intent is always 'SAVE').
-            2. If 'SAVE':
-               - Identify the best target folder (e.g., 'Tractor', 'Warranty', 'Medical', 'Bills', 'Documents').
-               - Reuse an existing matching folder name if available, otherwise create a concise 1-2 word Title-Case folder name.
-               - Write a clean, clear note in natural English for 'clean_data'.
-               - If an image is provided, extract key text from it (company/product name, bill amount, warranty period, date) and write a concise summary in English (max 200 characters) in 'ocr_text'. If no image is provided, leave 'ocr_text' as "".
-            3. If 'SEARCH':
-               - Extract the main search keyword in 'search_keyword' (e.g., 'tractor', 'warranty', 'samsung').
-            4. Write a short, polite, clear reply in English for 'ai_reply'.
+            Analyze the user's true intent carefully and choose ONE of these 3 intents:
+            1. "CREATE_FOLDER":
+               - Choose this ONLY when the user wants to create a new folder without storing any note or image (e.g., "ak Vishnu ka folder bnao", "create a folder named Medical").
+               - Extract the exact name/category for 'folder_name' in Title Case (e.g., "Vishnu", "Medical"). NEVER pick grammar words like "Ka", "Ki", "Ke", "Ek", "Ak".
+            2. "SAVE":
+               - Choose this when the user wants to store a note, reminder, expense, or attached image/receipt.
+               - If an active folder is open, use "{active_folder_name}" as 'folder_name'. Otherwise reuse an existing folder or create a concise 1-2 word Title-Case folder name.
+               - Convert the user's message into a clean, well-written English note in 'clean_data'.
+               - If an image is attached, extract important text (brand, item, amount, warranty, date) into 'ocr_text' (max 200 chars), else "".
+            3. "SEARCH":
+               - Choose this when the user asks a question or wants to find/view saved memories (e.g., "Vishnu folder me kya hai?", "show tractor bills").
+               - Put the main keyword or folder name in 'search_keyword'.
 
-            Return ONLY valid JSON matching this exact schema:
+            Always write a warm, clear, natural English confirmation in 'ai_reply'.
+
+            Return ONLY valid JSON matching this schema:
             {{
-                "intent": "SAVE" or "SEARCH",
+                "intent": "CREATE_FOLDER" or "SAVE" or "SEARCH",
                 "folder_name": "Folder Name",
                 "clean_data": "Clean English note text",
                 "ocr_text": "Extracted text from image or empty",
                 "search_keyword": "Keyword if SEARCH else empty",
-                "ai_reply": "Friendly English reply"
+                "ai_reply": "Helpful English reply"
             }}
             """
             contents = [prompt]
@@ -256,37 +307,49 @@ def smart_ai_processor(
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=contents,
-                config={"response_mime_type": "application/json"},
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.2,
+                ),
             )
-            return json.loads(response.text)
+            raw_text = response.text.strip()
+            if raw_text.startswith("```"):
+                raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text, flags=re.DOTALL).strip()
+            return json.loads(raw_text)
         except Exception as e:
-            print("Gemini API Fallback triggered:", e)
+            print("Gemini API Error (using smart fallback):", e)
 
-    text_lower = user_text.lower()
+    # Smart Local Fallback
+    text_lower = user_text.lower().strip()
+    default_folder = active_folder_name if active_folder_name else ("Warranty" if has_image else "General")
+    folder_name = (
+        active_folder_name
+        if active_folder_name
+        else extract_folder_name_smart(user_text, existing_folders, default_folder)
+    )
+
+    create_triggers = ["bnao", "banao", "banado", "bana do", "bana de", "create", "make", "new folder", "naya folder"]
+    meaningful_words = [w for w in re.findall(r"[a-zA-Z0-9_-]+", text_lower) if w not in STOP_WORDS]
+
+    if not has_image and "folder" in text_lower and any(t in text_lower for t in create_triggers) and len(meaningful_words) <= 2:
+        extracted_new = extract_folder_name_smart(user_text, existing_folders, "General")
+        return {
+            "intent": "CREATE_FOLDER",
+            "folder_name": extracted_new,
+            "clean_data": "",
+            "ocr_text": "",
+            "search_keyword": "",
+            "ai_reply": f"Done! I have created a new folder named '{extracted_new}' for you.",
+        }
+
     is_question = (
         not has_image
         and any(w in text_lower for w in ["what", "show", "tell", "how much", "when", "who", "search", "find", "kya", "dikhao", "batao", "?"])
         and not any(w in text_lower for w in ["store", "save", "keep", "add", "put", "rakh", "likh", "daal"])
     )
 
-    folder_name = "Warranty" if has_image else "General"
-    match = re.search(r"([a-zA-Z0-9_-]+)\s+(?:wale|wali|ka|ki|ke)?\s*folder", text_lower)
-    if not match:
-        match = re.search(r"in\s+(?:the\s+)?([a-zA-Z0-9_-]+)", text_lower)
-    if match:
-        folder_name = match.group(1).title()
-    else:
-        for f in existing_folders:
-            if f.lower() in text_lower:
-                folder_name = f
-                break
-
     if is_question:
-        clean_kw = re.sub(
-            r"\b(what|is|was|show|tell|me|my|the|in|data|folder|kya|hai|tha|dikhao|batao)\b",
-            "",
-            text_lower,
-        ).strip()
+        clean_kw = " ".join(meaningful_words).strip()
         return {
             "intent": "SEARCH",
             "folder_name": folder_name,
@@ -371,6 +434,35 @@ def login_user(payload: AuthPayload):
     }
 
 
+@app.post("/api/folder")
+def create_folder_direct(payload: FolderCreatePayload, authorization: Optional[str] = Header(None)):
+    user = get_current_user(authorization)
+    clean_name = payload.name.strip().title()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Please enter a valid folder name.")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, name FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?)",
+        (user["id"], clean_name),
+    )
+    existing = cursor.fetchone()
+    if existing:
+        conn.close()
+        return {"status": "exists", "folder": {"id": existing["id"], "name": existing["name"]}}
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute(
+        "INSERT INTO folders (user_id, name, created_at) VALUES (?, ?, ?)",
+        (user["id"], clean_name, now_str),
+    )
+    folder_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return {"status": "created", "folder": {"id": folder_id, "name": clean_name}}
+
+
 @app.get("/api/data")
 def get_all_data(
     folder_id: Optional[int] = None,
@@ -419,7 +511,7 @@ def get_all_data(
         memories.append(item)
 
     conn.close()
-    gemini_active = GEMINI_AVAILABLE and GEMINI_API_KEY != "APNI_GEMINI_API_KEY_YAHAN_DALEIN"
+    gemini_active = GEMINI_AVAILABLE and bool(GEMINI_API_KEY) and GEMINI_API_KEY != "APNI_GEMINI_API_KEY_YAHAN_DALEIN"
     return {
         "user": user,
         "folders": folders,
@@ -431,6 +523,7 @@ def get_all_data(
 @app.post("/api/chat")
 async def process_chat(
     message: str = Form(""),
+    target_folder_id: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
     authorization: Optional[str] = Header(None),
 ):
@@ -451,8 +544,35 @@ async def process_chat(
     cursor.execute("SELECT name FROM folders WHERE user_id = ?", (user_id,))
     existing_folders = [r["name"] for r in cursor.fetchall()]
 
-    ai_result = smart_ai_processor(message, image_bytes, mime_type, existing_folders)
+    active_folder = None
+    if target_folder_id and target_folder_id.strip().isdigit():
+        cursor.execute(
+            "SELECT id, name FROM folders WHERE id = ? AND user_id = ?",
+            (int(target_folder_id.strip()), user_id),
+        )
+        row = cursor.fetchone()
+        if row:
+            active_folder = dict(row)
+
+    ai_result = smart_ai_processor(
+        message,
+        image_bytes,
+        mime_type,
+        existing_folders,
+        active_folder["name"] if active_folder else None,
+    )
     intent = ai_result.get("intent", "SAVE")
+
+    if intent == "CREATE_FOLDER":
+        folder_name = ai_result.get("folder_name", "General").strip().title()
+        new_id = get_or_create_folder(conn, user_id, folder_name)
+        conn.close()
+        return {
+            "status": "folder_created",
+            "ai_reply": ai_result.get("ai_reply", f"Done! I have created the '{folder_name}' folder."),
+            "folder_id": new_id,
+            "folder_name": folder_name,
+        }
 
     if intent == "SEARCH":
         kw = ai_result.get("search_keyword", "").strip()
@@ -478,10 +598,16 @@ async def process_chat(
             "count": len(results),
         }
 
-    folder_name = ai_result.get("folder_name", "General")
+    # SAVE INTENT: If user has clicked/opened a specific folder, save directly inside it
+    if active_folder:
+        folder_id = active_folder["id"]
+        folder_name = active_folder["name"]
+    else:
+        folder_name = ai_result.get("folder_name", "General")
+        folder_id = get_or_create_folder(conn, user_id, folder_name)
+
     clean_data = ai_result.get("clean_data", message.strip() or "Saved Image Document")
     ocr_text = ai_result.get("ocr_text", "").strip()
-    folder_id = get_or_create_folder(conn, user_id, folder_name)
 
     saved_image_url = None
     if image_bytes and image and image.filename:
@@ -503,9 +629,14 @@ async def process_chat(
     conn.commit()
     conn.close()
 
+    reply_text = ai_result.get("ai_reply", f"Saved to the '{folder_name}' folder!")
+    if active_folder and folder_name.lower() not in reply_text.lower():
+        reply_text = f"Saved directly inside your '{folder_name}' folder!"
+
     return {
         "status": "saved",
-        "ai_reply": ai_result.get("ai_reply", f"Saved to the '{folder_name}' folder!"),
+        "ai_reply": reply_text,
+        "folder_id": folder_id,
         "folder_name": folder_name,
     }
 
@@ -550,7 +681,6 @@ def delete_folder(folder_id: int, authorization: Optional[str] = Header(None)):
         conn.close()
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    # Delete all image files belonging to memories inside this folder
     cursor.execute(
         "SELECT image_path FROM memories WHERE folder_id = ? AND user_id = ?",
         (folder_id, user["id"]),
@@ -561,7 +691,6 @@ def delete_folder(folder_id: int, authorization: Optional[str] = Header(None)):
             if os.path.exists(disk_path):
                 os.remove(disk_path)
 
-    # Delete all memories inside this folder, then delete the folder
     cursor.execute(
         "DELETE FROM memories WHERE folder_id = ? AND user_id = ?",
         (folder_id, user["id"]),
