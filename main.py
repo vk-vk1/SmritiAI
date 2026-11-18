@@ -2,6 +2,7 @@ import os
 import re
 import json
 import uuid
+import base64
 import sqlite3
 import hashlib
 import secrets
@@ -14,6 +15,13 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    POSTGRES_LIB = True
+except ImportError:
+    POSTGRES_LIB = False
+
+try:
     from google import genai
     from google.genai import types
     GEMINI_AVAILABLE = True
@@ -21,8 +29,13 @@ except ImportError:
     GEMINI_AVAILABLE = False
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v2.6")
+USE_POSTGRES = bool(DATABASE_URL) and POSTGRES_LIB
+
+app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v3.0")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -38,10 +51,24 @@ STOP_WORDS = {
 }
 
 
+def q(sql: str) -> str:
+    return sql.replace("?", "%s") if USE_POSTGRES else sql
+
+
 def get_db():
+    if USE_POSTGRES:
+        return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def insert_row(cursor, sql: str, params: tuple) -> int:
+    if USE_POSTGRES:
+        cursor.execute(q(sql) + " RETURNING id", params)
+        return cursor.fetchone()["id"]
+    cursor.execute(sql, params)
+    return cursor.lastrowid
 
 
 def hash_password(password: str) -> str:
@@ -62,9 +89,11 @@ def verify_password(password: str, stored_value: str) -> bool:
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    pk_type = "SERIAL PRIMARY KEY" if USE_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {pk_type},
             full_name TEXT NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
@@ -79,18 +108,18 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS folders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {pk_type},
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             created_at TEXT NOT NULL,
             UNIQUE(user_id, name)
         )
     """)
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS memories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {pk_type},
             user_id INTEGER NOT NULL,
             folder_id INTEGER NOT NULL,
             content TEXT NOT NULL,
@@ -123,11 +152,11 @@ def get_current_user(authorization: Optional[str] = Header(None)):
     token = authorization.replace("Bearer ", "").strip()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(q("""
         SELECT u.id, u.full_name, u.username
         FROM sessions s JOIN users u ON s.user_id = u.id
         WHERE s.token = ?
-    """, (token,))
+    """), (token,))
     user = cursor.fetchone()
     conn.close()
     if not user:
@@ -153,14 +182,14 @@ def get_or_create_folder(conn, user_id: int, folder_name: str) -> int:
     if not clean_name or clean_name.lower() in STOP_WORDS:
         clean_name = "General"
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?)", (user_id, clean_name))
+    cursor.execute(q("SELECT id FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?)"), (user_id, clean_name))
     row = cursor.fetchone()
     if row:
         return row["id"]
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("INSERT INTO folders (user_id, name, created_at) VALUES (?, ?, ?)", (user_id, clean_name, now_str))
+    folder_id = insert_row(cursor, "INSERT INTO folders (user_id, name, created_at) VALUES (?, ?, ?)", (user_id, clean_name, now_str))
     conn.commit()
-    return cursor.lastrowid
+    return folder_id
 
 
 def extract_folder_name_smart(user_text: str, existing_folders: list, default_name: str = "General") -> str:
@@ -288,7 +317,7 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
   <div class="glass auth-box">
     <div class="brand">
       <div class="logo">S</div>
-      <div><h1 style="font-size:22px;">Smriti<span style="color:#22d3ee;">AI</span> <span style="font-size:11px;color:#34d399;">v2.6</span></h1><p style="font-size:12px;color:#94a3b8;">Personal and Family Memory Vault</p></div>
+      <div><h1 style="font-size:22px;">Smriti<span style="color:#22d3ee;">AI</span> <span style="font-size:11px;color:#34d399;">Cloud</span></h1><p style="font-size:12px;color:#94a3b8;">Personal and Family Memory Vault</p></div>
     </div>
     <div class="tabs">
       <button type="button" id="tabLogin" class="tab active" onclick="setLoginMode()">Login</button>
@@ -324,7 +353,8 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
       <button type="button" onclick="toggleVoiceReply()" class="btn-sm row-between" style="width:100%;padding:8px 10px;">
         <span>AI Voice Reply</span><span id="voiceStatusText" style="color:#34d399;font-weight:700;">ON</span>
       </button>
-      <div id="aiModeBadge" style="font-size:12px;padding:8px 10px;border-radius:8px;background:#0f172a;color:#cbd5e1;">Checking AI...</div>
+      <div id="aiModeBadge" style="font-size:12px;padding:8px 10px;border-radius:8px;background:#0f172a;color:#cbd5e1;">Checking Status...</div>
+      <div id="dbModeBadge" style="font-size:12px;padding:8px 10px;border-radius:8px;background:#0f172a;color:#cbd5e1;">Checking Storage...</div>
     </div>
   </aside>
 
@@ -446,6 +476,7 @@ async function loadVaultData(fId,sKw,cTitle,fName){
   document.getElementById("userDisplayName").innerText=data.user.full_name;
   document.getElementById("aiGreeting").innerText="Welcome, "+data.user.full_name+"! What memory would you like to save?";
   document.getElementById("aiModeBadge").innerHTML=data.gemini_active?'<span class="dot" style="background:#34d399;"></span>Gemini 2.5 Vision AI Active':'<span class="dot" style="background:#fbbf24;"></span>Smart Local Mode Active';
+  document.getElementById("dbModeBadge").innerHTML=data.cloud_db_active?'<span class="dot" style="background:#34d399;"></span>Permanent Cloud DB Active':'<span class="dot" style="background:#fbbf24;"></span>Temporary Local DB';
   var total=data.folders.reduce(function(a,f){return a+f.count;},0);
   var fHtml='<div class="f-row '+(!activeFolderId&&!sKw?"active":"")+'"><button type="button" class="f-btn" onclick="loadAllMemories()"><span>All Memories</span><span class="pill">'+total+'</span></button></div>';
   data.folders.forEach(function(f){
@@ -510,15 +541,14 @@ def register_user(payload: AuthPayload):
         raise HTTPException(status_code=400, detail="Username min 3 chars and password min 4 chars.")
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+    cursor.execute(q("SELECT id FROM users WHERE username = ?"), (username,))
     if cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=400, detail="Username already exists. Please Login.")
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("INSERT INTO users (full_name, username, password_hash, created_at) VALUES (?, ?, ?, ?)", (full_name, username, hash_password(payload.password), now_str))
-    user_id = cursor.lastrowid
+    user_id = insert_row(cursor, "INSERT INTO users (full_name, username, password_hash, created_at) VALUES (?, ?, ?, ?)", (full_name, username, hash_password(payload.password), now_str))
     token = secrets.token_hex(24)
-    cursor.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user_id, now_str))
+    cursor.execute(q("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)"), (token, user_id, now_str))
     conn.commit()
     conn.close()
     return {"token": token, "user": {"id": user_id, "full_name": full_name, "username": username}}
@@ -529,13 +559,13 @@ def login_user(payload: AuthPayload):
     username = payload.username.strip().lower()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    cursor.execute(q("SELECT * FROM users WHERE username = ?"), (username,))
     user = cursor.fetchone()
     if not user or not verify_password(payload.password, user["password_hash"]):
         conn.close()
         raise HTTPException(status_code=401, detail="Invalid username or password!")
     token = secrets.token_hex(24)
-    cursor.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user["id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    cursor.execute(q("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)"), (token, user["id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     return {"token": token, "user": {"id": user["id"], "full_name": user["full_name"], "username": user["username"]}}
@@ -549,13 +579,12 @@ def create_folder_direct(payload: FolderCreatePayload, authorization: Optional[s
         raise HTTPException(status_code=400, detail="Enter a folder name.")
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?)", (user["id"], clean_name))
+    cursor.execute(q("SELECT id, name FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?)"), (user["id"], clean_name))
     existing = cursor.fetchone()
     if existing:
         conn.close()
         return {"status": "exists", "folder": {"id": existing["id"], "name": existing["name"]}}
-    cursor.execute("INSERT INTO folders (user_id, name, created_at) VALUES (?, ?, ?)", (user["id"], clean_name, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    folder_id = cursor.lastrowid
+    folder_id = insert_row(cursor, "INSERT INTO folders (user_id, name, created_at) VALUES (?, ?, ?)", (user["id"], clean_name, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     return {"status": "created", "folder": {"id": folder_id, "name": clean_name}}
@@ -567,11 +596,11 @@ def get_all_data(folder_id: Optional[int] = None, search: Optional[str] = None, 
     user_id = user["id"]
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(q("""
         SELECT f.id, f.name, COUNT(m.id) as count FROM folders f
         LEFT JOIN memories m ON f.id = m.folder_id AND m.user_id = ?
-        WHERE f.user_id = ? GROUP BY f.id ORDER BY f.name ASC
-    """, (user_id, user_id))
+        WHERE f.user_id = ? GROUP BY f.id, f.name ORDER BY f.name ASC
+    """), (user_id, user_id))
     folders = [dict(row) for row in cursor.fetchall()]
 
     query = "SELECT m.id, m.folder_id, f.name as folder_name, m.content, m.ocr_text, m.image_path, m.created_at FROM memories m JOIN folders f ON m.folder_id = f.id WHERE m.user_id = ?"
@@ -584,7 +613,7 @@ def get_all_data(folder_id: Optional[int] = None, search: Optional[str] = None, 
         kw = f"%{search.lower()}%"
         params.extend([kw, kw, kw])
     query += " ORDER BY m.created_at DESC, m.id DESC"
-    cursor.execute(query, params)
+    cursor.execute(q(query), tuple(params))
 
     memories = []
     for row in cursor.fetchall():
@@ -593,7 +622,13 @@ def get_all_data(folder_id: Optional[int] = None, search: Optional[str] = None, 
         item["time_only"] = datetime.strptime(item["created_at"], "%Y-%m-%d %H:%M:%S").strftime("%I:%M %p")
         memories.append(item)
     conn.close()
-    return {"user": user, "folders": folders, "memories": memories, "gemini_active": GEMINI_AVAILABLE and bool(GEMINI_API_KEY)}
+    return {
+        "user": user,
+        "folders": folders,
+        "memories": memories,
+        "gemini_active": GEMINI_AVAILABLE and bool(GEMINI_API_KEY),
+        "cloud_db_active": USE_POSTGRES,
+    }
 
 
 @app.post("/api/chat")
@@ -607,12 +642,12 @@ async def process_chat(message: str = Form(""), target_folder_id: Optional[str] 
 
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM folders WHERE user_id = ?", (user_id,))
+    cursor.execute(q("SELECT name FROM folders WHERE user_id = ?"), (user_id,))
     existing_folders = [r["name"] for r in cursor.fetchall()]
 
     active_folder = None
     if target_folder_id and target_folder_id.strip().isdigit():
-        cursor.execute("SELECT id, name FROM folders WHERE id = ? AND user_id = ?", (int(target_folder_id.strip()), user_id))
+        cursor.execute(q("SELECT id, name FROM folders WHERE id = ? AND user_id = ?"), (int(target_folder_id.strip()), user_id))
         row = cursor.fetchone()
         if row:
             active_folder = dict(row)
@@ -628,21 +663,26 @@ async def process_chat(message: str = Form(""), target_folder_id: Optional[str] 
 
     if intent == "SEARCH":
         kw = ai_result.get("search_keyword", "").strip()
-        cursor.execute("SELECT m.id FROM memories m JOIN folders f ON m.folder_id = f.id WHERE m.user_id = ? AND (LOWER(m.content) LIKE ? OR LOWER(m.ocr_text) LIKE ? OR LOWER(f.name) LIKE ?)", (user_id, f"%{kw.lower()}%", f"%{kw.lower()}%", f"%{kw.lower()}%"))
+        cursor.execute(q("SELECT m.id FROM memories m JOIN folders f ON m.folder_id = f.id WHERE m.user_id = ? AND (LOWER(m.content) LIKE ? OR LOWER(m.ocr_text) LIKE ? OR LOWER(f.name) LIKE ?)"), (user_id, f"%{kw.lower()}%", f"%{kw.lower()}%", f"%{kw.lower()}%"))
         results = cursor.fetchall()
         conn.close()
         return {"status": "search", "ai_reply": f"Found {len(results)} record(s) for '{kw}'." if results else f"No records found for '{kw}'.", "search_keyword": kw, "count": len(results)}
 
     folder_id = active_folder["id"] if active_folder else get_or_create_folder(conn, user_id, ai_result.get("folder_name", "General"))
     folder_name = active_folder["name"] if active_folder else ai_result.get("folder_name", "General")
+
     saved_image_url = None
     if image_bytes and image and image.filename:
-        unique_name = f"{uuid.uuid4().hex}{os.path.splitext(image.filename)[1] or '.jpg'}"
-        with open(os.path.join("uploads", unique_name), "wb") as buffer:
-            buffer.write(image_bytes)
-        saved_image_url = f"/uploads/{unique_name}"
+        if USE_POSTGRES:
+            b64_str = base64.b64encode(image_bytes).decode("utf-8")
+            saved_image_url = f"data:{mime_type};base64,{b64_str}"
+        else:
+            unique_name = f"{uuid.uuid4().hex}{os.path.splitext(image.filename)[1] or '.jpg'}"
+            with open(os.path.join("uploads", unique_name), "wb") as buffer:
+                buffer.write(image_bytes)
+            saved_image_url = f"/uploads/{unique_name}"
 
-    cursor.execute("INSERT INTO memories (user_id, folder_id, content, ocr_text, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)", (user_id, folder_id, ai_result.get("clean_data", message.strip() or "Saved Image"), ai_result.get("ocr_text", "").strip(), saved_image_url, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    cursor.execute(q("INSERT INTO memories (user_id, folder_id, content, ocr_text, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)"), (user_id, folder_id, ai_result.get("clean_data", message.strip() or "Saved Image"), ai_result.get("ocr_text", "").strip(), saved_image_url, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     return {"status": "saved", "ai_reply": ai_result.get("ai_reply", f"Saved to '{folder_name}'!"), "folder_id": folder_id, "folder_name": folder_name}
@@ -653,14 +693,14 @@ def delete_memory(memory_id: int, authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT image_path FROM memories WHERE id = ? AND user_id = ?", (memory_id, user["id"]))
+    cursor.execute(q("SELECT image_path FROM memories WHERE id = ? AND user_id = ?"), (memory_id, user["id"]))
     row = cursor.fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="Not found")
-    if row["image_path"] and os.path.exists(row["image_path"].lstrip("/")):
+    if row["image_path"] and row["image_path"].startswith("/uploads/") and os.path.exists(row["image_path"].lstrip("/")):
         os.remove(row["image_path"].lstrip("/"))
-    cursor.execute("DELETE FROM memories WHERE id = ? AND user_id = ?", (memory_id, user["id"]))
+    cursor.execute(q("DELETE FROM memories WHERE id = ? AND user_id = ?"), (memory_id, user["id"]))
     conn.commit()
     conn.close()
     return {"status": "deleted"}
@@ -671,16 +711,16 @@ def delete_folder(folder_id: int, authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM folders WHERE id = ? AND user_id = ?", (folder_id, user["id"]))
+    cursor.execute(q("SELECT id FROM folders WHERE id = ? AND user_id = ?"), (folder_id, user["id"]))
     if not cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Not found")
-    cursor.execute("SELECT image_path FROM memories WHERE folder_id = ? AND user_id = ?", (folder_id, user["id"]))
+    cursor.execute(q("SELECT image_path FROM memories WHERE folder_id = ? AND user_id = ?"), (folder_id, user["id"]))
     for row in cursor.fetchall():
-        if row["image_path"] and os.path.exists(row["image_path"].lstrip("/")):
+        if row["image_path"] and row["image_path"].startswith("/uploads/") and os.path.exists(row["image_path"].lstrip("/")):
             os.remove(row["image_path"].lstrip("/"))
-    cursor.execute("DELETE FROM memories WHERE folder_id = ? AND user_id = ?", (folder_id, user["id"]))
-    cursor.execute("DELETE FROM folders WHERE id = ? AND user_id = ?", (folder_id, user["id"]))
+    cursor.execute(q("DELETE FROM memories WHERE folder_id = ? AND user_id = ?"), (folder_id, user["id"]))
+    cursor.execute(q("DELETE FROM folders WHERE id = ? AND user_id = ?"), (folder_id, user["id"]))
     conn.commit()
     conn.close()
     return {"status": "deleted"}
