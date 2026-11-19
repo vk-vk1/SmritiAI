@@ -35,7 +35,7 @@ if DATABASE_URL.startswith("postgres://"):
 
 USE_POSTGRES = bool(DATABASE_URL) and POSTGRES_LIB
 
-app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v3.0")
+app = FastAPI(title="SmritiAI — Smart Conversational Memory Vault v3.1")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -304,6 +304,7 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
 .input-box input{flex:1;background:transparent;border:none;color:#fff;font-size:14px;padding:8px;outline:none}
 .icon-btn{background:transparent;border:none;color:#94a3b8;font-size:13px;font-weight:600;padding:6px 8px;cursor:pointer}.icon-btn:hover{color:#22d3ee}
 .send-btn{background:linear-gradient(90deg,#4f46e5,#06b6d4);color:#fff;font-weight:600;border:none;border-radius:10px;padding:11px 20px;cursor:pointer}
+.send-btn:disabled{opacity:.6;cursor:not-allowed}
 .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}@media(min-width:768px){.grid{grid-template-columns:1fr 1fr}}
 .mem-card{border-radius:14px;padding:15px}
 .tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;background:rgba(99,102,241,.25);color:#a5b4fc}
@@ -366,10 +367,15 @@ body{background:radial-gradient(circle at top left,#0f172a,#020617);color:#f8faf
         <span>Writing inside folder: <strong id="activeFolderLabel" style="color:#fff;"></strong></span>
         <button type="button" onclick="resetFilters()" class="btn-sm" style="padding:3px 8px;">Exit Folder</button>
       </div>
-      <div id="imagePreviewBox" class="hidden" style="margin-top:10px;display:flex;align-items:center;gap:10px;background:#0f172a;padding:8px;border-radius:10px;">
-        <img id="imagePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Preview" style="width:44px;height:44px;object-fit:cover;border-radius:6px;">
-        <span id="imageName" style="font-size:12px;color:#cbd5e1;"></span>
-        <button type="button" onclick="clearImage()" class="icon-btn" style="color:#fb7185;">Remove</button>
+      <div id="imagePreviewBox" style="display:none;margin-top:12px;align-items:center;justify-content:space-between;gap:10px;background:#0f172a;border:1px solid #22d3ee;padding:10px;border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+          <img id="imagePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Preview" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+          <div style="overflow:hidden;">
+            <p id="imageName" style="font-size:12px;color:#f8fafc;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+            <p style="font-size:11px;color:#34d399;">Ready to scan and save with AI</p>
+          </div>
+        </div>
+        <button type="button" onclick="clearImage()" class="btn-sm" style="color:#fb7185;flex-shrink:0;">Remove</button>
       </div>
       <form onsubmit="handleSend(event)" class="chat-bar">
         <div class="input-box">
@@ -497,25 +503,66 @@ async function loadVaultData(fId,sKw,cTitle,fName){
   });
   cont.innerHTML=mHtml;
 }
+function compressImage(file){
+  return new Promise(function(resolve){
+    if(!file||!file.type.startsWith("image/")||file.size<350000){resolve(file);return;}
+    var img=new Image(),url=URL.createObjectURL(file);
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      var maxW=1280,w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*(maxW/w));w=maxW;}
+      var c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      c.toBlob(function(blob){
+        if(!blob){resolve(file);return;}
+        resolve(new File([blob],file.name.replace(/\.[^.]+$/,".jpg"),{type:"image/jpeg"}));
+      },"image/jpeg",0.82);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
 async function handleSend(e){
-  e.preventDefault();var inp=document.getElementById("userInput"),file=document.getElementById("imageInput");
-  if(!inp.value.trim()&&!file.files.length)return;
-  var fd=new FormData();fd.append("message",inp.value);
-  if(activeFolderId)fd.append("target_folder_id",String(activeFolderId));
-  if(file.files.length)fd.append("image",file.files[0]);
-  var btn=document.getElementById("sendBtn");btn.disabled=true;
+  e.preventDefault();
+  var inp=document.getElementById("userInput"),fileInp=document.getElementById("imageInput");
+  if(!inp.value.trim()&&!fileInp.files.length)return;
+  var btn=document.getElementById("sendBtn"),btnTxt=document.getElementById("sendBtnText");
+  var oldLabel=btnTxt.innerText;
+  btn.disabled=true;btnTxt.innerText="Saving...";
   try{
+    var fd=new FormData();fd.append("message",inp.value);
+    if(activeFolderId)fd.append("target_folder_id",String(activeFolderId));
+    if(fileInp.files.length){
+      var finalFile=await compressImage(fileInp.files[0]);
+      fd.append("image",finalFile,finalFile.name||"photo.jpg");
+    }
     var res=await fetch("/api/chat",{method:"POST",headers:{"Authorization":"Bearer "+authToken},body:fd});
-    var data=await res.json();document.getElementById("aiSubReply").innerText=data.ai_reply;speakText(data.ai_reply);
+    var raw=await res.text(),data={};
+    try{data=JSON.parse(raw);}catch(x){data={detail:"Server is busy or waking up. Please try again."};}
+    if(!res.ok){alert(data.detail||"Could not save memory.");return;}
+    document.getElementById("aiSubReply").innerText=data.ai_reply;speakText(data.ai_reply);
     inp.value="";clearImage();
     if(data.status==="search")loadVaultData(null,data.search_keyword,"Search: "+data.search_keyword,null);
     else if(data.status==="folder_created")loadVaultData(data.folder_id,null,data.folder_name+" Folder",data.folder_name);
     else loadVaultData(activeFolderId,null,activeFolderName?activeFolderName+" Folder":null,activeFolderName);
-  }finally{btn.disabled=false;}
+  }catch(err){
+    alert("Upload error: "+err.message);
+  }finally{
+    btn.disabled=false;btnTxt.innerText=oldLabel;
+  }
 }
 function handleQuickSearch(v){clearTimeout(searchTimer);searchTimer=setTimeout(function(){v.trim()?loadVaultData(null,v.trim(),"Search: "+v.trim(),null):loadVaultData(activeFolderId);},250);}
 function resetFilters(){document.getElementById("quickSearchInput").value="";loadAllMemories();}
-function previewSelectedImage(e){var f=e.target.files[0];if(!f)return;document.getElementById("imagePreview").src=URL.createObjectURL(f);document.getElementById("imageName").innerText=f.name;document.getElementById("imagePreviewBox").style.display="flex";}
+function previewSelectedImage(e){
+  var f=e.target.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    document.getElementById("imagePreview").src=ev.target.result;
+    document.getElementById("imageName").innerText=f.name+" ("+Math.round(f.size/1024)+" KB)";
+    document.getElementById("imagePreviewBox").style.display="flex";
+  };
+  reader.readAsDataURL(f);
+}
 function clearImage(){document.getElementById("imageInput").value="";document.getElementById("imagePreview").src=BLANK_IMG;document.getElementById("imagePreviewBox").style.display="none";}
 async function deleteMemory(id){if(!confirm("Delete this memory?"))return;await fetch("/api/memory/"+id,{method:"DELETE",headers:{"Authorization":"Bearer "+authToken}});loadVaultData(activeFolderId);}
 function openModal(s){document.getElementById("modalImg").src=s;document.getElementById("imageModal").className="modal-bg";}
